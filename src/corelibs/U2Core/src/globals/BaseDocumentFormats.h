@@ -43,6 +43,7 @@ public:
     static const DocumentFormatId FASTA;
     static const DocumentFormatId FASTQ;
     static const DocumentFormatId FPKM_TRACKING_FORMAT;
+    static const DocumentFormatId FSA;
     static const DocumentFormatId GFF;
     static const DocumentFormatId GTF;
     static const DocumentFormatId INDEX;

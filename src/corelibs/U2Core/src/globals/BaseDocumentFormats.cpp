@@ -35,6 +35,7 @@ const DocumentFormatId BaseDocumentFormats::DIFF("diff");
 const DocumentFormatId BaseDocumentFormats::FASTA("fasta");
 const DocumentFormatId BaseDocumentFormats::FASTQ("fastq");
 const DocumentFormatId BaseDocumentFormats::FPKM_TRACKING_FORMAT("fpkm-tracking");
+const DocumentFormatId BaseDocumentFormats::FSA("fsa");
 const DocumentFormatId BaseDocumentFormats::GFF("gff");
 const DocumentFormatId BaseDocumentFormats::GTF("gtf");
 const DocumentFormatId BaseDocumentFormats::INDEX("index");

@@ -18,6 +18,7 @@ HEADERS += src/ABIFormat.h \
            src/FastaFormat.h \
            src/FastqFormat.h \
            src/FpkmTrackingFormat.h \
+           src/FsaFormat.h \
            src/GenbankLocationParser.h \
            src/GenbankPlainTextFormat.h \
            src/GFFFormat.h \
@@ -116,6 +117,7 @@ SOURCES += src/ABIFormat.cpp \
            src/FastaFormat.cpp \
            src/FastqFormat.cpp \
            src/FpkmTrackingFormat.cpp \
+           src/FsaFormat.cpp \
            src/GenbankLocationParser.cpp \
            src/GenbankPlainTextFormat.cpp \
            src/GFFFormat.cpp \
