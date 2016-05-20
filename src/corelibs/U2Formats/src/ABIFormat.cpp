@@ -182,14 +182,15 @@ DNASequence *ABIFormat::loadSequence(IOAdapter *io, U2OpStatus &os)
 #define SVERLabel         LABEL("SVER")
 #define MODLLabel         LABEL("MODL")
 #define BaseConfLabel     LABEL("PCON")
+#define InstrumentLabel   LABEL("HCFG")
 
 #define baseIndex(B) ((B)=='C'?0:(B)=='A'?1:(B)=='G'?2:3)
-
+namespace {
 /*
 * Gets the offset of the ABI index.
 * Returns -1 for failure, 0 for success.
 */
-static int getABIIndexOffset(SeekableBuf* fp, uint *indexO) {
+int getABIIndexOffset(SeekableBuf* fp, uint *indexO) {
     uint magic = 0;
 
     /*
@@ -218,14 +219,14 @@ static int getABIIndexOffset(SeekableBuf* fp, uint *indexO) {
 * The result is 0 for failure, or index offset for success.
 */
 int getABIIndexEntryLW(SeekableBuf* fp, int indexO, uint label, uint count, int lw, uint *val) {
-    int entryNum=-1;
+    int entryNum = -1;
     int i;
     uint entryLabel, entryLw1;
 
     do {
         entryNum++;
 
-        if (SeekBuf(fp, indexO+(entryNum*IndexEntryLength), 0) != 0)
+        if (SeekBuf(fp, indexO + (entryNum*IndexEntryLength), 0) != 0)
             return 0;
 
         if (!be_read_int_4(fp, &entryLabel))
@@ -235,12 +236,12 @@ int getABIIndexEntryLW(SeekableBuf* fp, int indexO, uint label, uint count, int 
             return 0;
     } while (!(entryLabel == label && entryLw1 == count));
 
-    for(i=2; i<=lw; i++) {
+    for (i = 2; i <= lw; i++) {
         if (!be_read_int_4(fp, val))
             return 0;
     }
 
-    return indexO+(entryNum*IndexEntryLength);
+    return indexO + (entryNum*IndexEntryLength);
 }
 
 /*
@@ -250,14 +251,14 @@ int getABIIndexEntryLW(SeekableBuf* fp, int indexO, uint label, uint count, int 
 * The result is 0 for failure, or index offset for success.
 */
 int getABIIndexEntrySW(SeekableBuf* fp, int indexO, uint label, uint count, int sw, ushort *val) {
-    int entryNum=-1;
+    int entryNum = -1;
     int i;
     uint entryLabel, entryLw1;
 
     do {
         entryNum++;
 
-        if (SeekBuf(fp, indexO+(entryNum*IndexEntryLength), 0) != 0)
+        if (SeekBuf(fp, indexO + (entryNum*IndexEntryLength), 0) != 0)
             return 0;
 
         if (!be_read_int_4(fp, &entryLabel))
@@ -267,12 +268,12 @@ int getABIIndexEntrySW(SeekableBuf* fp, int indexO, uint label, uint count, int 
             return 0;
     } while (!(entryLabel == label && entryLw1 == count));
 
-    for(i=4; i<=sw; i++) {
+    for (i = 4; i <= sw; i++) {
         if (!be_read_int_2(fp, val))
             return 0;
     }
 
-    return indexO+(entryNum*IndexEntryLength);
+    return indexO + (entryNum*IndexEntryLength);
 }
 
 /*
@@ -380,14 +381,14 @@ int getABIint2(SeekableBuf *fp, int indexO, uint label, uint count, ushort *data
     int len, l2;
     int i;
 
-    len = getABIint1(fp, indexO, label, count, (uchar *)data, max_data_len*2);
+    len = getABIint1(fp, indexO, label, count, (uchar *)data, max_data_len * 2);
     if (-1 == len)
         return -1;
 
     len /= 2;
     l2 = qMin(len, max_data_len);
     for (i = 0; i < l2; i++) {
-        data[i] = be_int2((uchar*)(data+i));
+        data[i] = be_int2((uchar*)(data + i));
     }
 
     return len;
@@ -405,24 +406,25 @@ int getABIint4(SeekableBuf *fp, int indexO, uint label, uint count, uint *data, 
     int len, l2;
     int i;
 
-    len = getABIint1(fp, indexO, label, count, (uchar *)data, max_data_len*4);
+    len = getABIint1(fp, indexO, label, count, (uchar *)data, max_data_len * 4);
     if (-1 == len)
         return -1;
 
     len /= 4;
     l2 = qMin(len, max_data_len);
     for (i = 0; i < l2; i++) {
-        data[i] = be_int4((uchar*)(data+i));
+        data[i] = be_int4((uchar*)(data + i));
     }
 
     return len;
 }
 
-static void replace_nl(char *string) {
+void replace_nl(char *string) {
     char *cp;
 
     for (cp = string; *cp; cp++) {
         if (*cp == '\n') *cp = ' ';
+        }
     }
 }
 
@@ -482,7 +484,8 @@ bool ABIFormat::loadABIObjects(SeekableBuf* fp, DNASequence &dna, DNAChromatogra
     uint offset4;  /* Generic offset */
 
     /* DATA block numbers for traces, in order of FWO_ */
-    int DataCount[4] = {9, 10, 11, 12};
+    //int DataCount[4] = {9, 10, 11, 12};
+    int DataCount[4] = { 1, 2, 3, 4 };
 
     QString sequenceName;
     QString sequenceComment;
@@ -878,6 +881,11 @@ skip_bases:
         if (-1 != getABIString(fp, indexO, GelNameLabel, 1, buffer)) {
             replace_nl(buffer);
             sequenceComment.append(QString("GELN=%1\n").arg(buffer));
+        }
+
+        if (-1 != getABIString(fp, indexO, InstrumentLabel, 2, buffer)) {
+            replace_nl(buffer);
+            //sequenceComment.append(QString("BCAL=%1\n").arg(buffer));
         }
     }
 

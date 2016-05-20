@@ -37,6 +37,7 @@
 #include <U2Formats/FastaFormat.h>
 #include <U2Formats/FastqFormat.h>
 #include <U2Formats/FpkmTrackingFormat.h>
+#include <U2Formats/FsaFormat.h>
 #include <U2Formats/GFFFormat.h>
 #include <U2Formats/GTFFormat.h>
 #include <U2Formats/GenbankPlainTextFormat.h>
@@ -214,6 +215,9 @@ void DocumentFormatRegistryImpl::init() {
 
     PhylipSequentialFormat *phSeq = new PhylipSequentialFormat(this);
     registerFormat(phSeq);
+
+    FsaFormat *fsaF = new FsaFormat(this);
+    registerFormat(fsaF);
 
     registerFormat(new DatabaseConnectionFormat(this));
     registerFormat(new VectorNtiSequenceFormat(this));
