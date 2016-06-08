@@ -678,18 +678,15 @@ void FsaFormat::extractData(SeekableBuf* fp, uint indexO, QString &textData) {
         result1 = getABIIndexEntryLW(fp, indexO, DataEntryLabel, i, 5, &firstElementOffset);
         result2 = getABIIndexEntryLW(fp, indexO, DataEntryLabel, i, 3, &arraySize);
         if (result1 != 0 && result2 != 0) {
+            QVector<int> vec;
             SeekBuf(fp, firstElementOffset, 0);
-            QString line = QString::number(i);
-            line.append(";");
             for (uint itemNumber = 0; itemNumber < arraySize; itemNumber ++) {
                 char strBuf[2];
                 fp->read(strBuf, 2);
                 ushort readedData = ((strBuf[1] << 8) & 0xFF00) | (strBuf[0] & 0xFF);
-                line.append(QString::number(readedData));
-                line.append(";");
+                vec.append(readedData);
             }
-            line.append("\n");
-            textData.append(line);
+            dataMap.insert(i, vec);
         }
     }
 
@@ -697,21 +694,33 @@ void FsaFormat::extractData(SeekableBuf* fp, uint indexO, QString &textData) {
         result1 = getABIIndexEntryLW(fp, indexO, DataEntryLabel, i, 5, &firstElementOffset);
         result2 = getABIIndexEntryLW(fp, indexO, DataEntryLabel, i, 3, &arraySize);
         if (result1 != 0 && result2 != 0) {
+            QVector<int> vec;
             SeekBuf(fp, firstElementOffset, 0);
-            QString line = QString::number(i);
-            line.append(";");
             for (uint itemNumber = 0; itemNumber < arraySize; itemNumber++) {
                 char strBuf[2];
                 fp->read(strBuf, 2);
                 ushort readedData = ((strBuf[1] << 8) & 0xFF00) | (strBuf[0] & 0xFF);
-                line.append(QString::number(readedData));
-                line.append(";");
+                vec.append(readedData);
             }
-            line.append("\n");
-            textData.append(line);
+            dataMap.insert(i, vec);
         }
     }
 
+    foreach(int key, dataMap.keys()) {
+        textData.append(QString::number(key));
+        textData.append(";");
+    }
+    textData.append("\n");
+    if (dataMap.isEmpty()) {
+        return;
+    }
+    for (int i = 0; i < dataMap.first().size(); i++) {
+        foreach(int key, dataMap.keys()) {
+            textData.append(QString::number(dataMap[key][i]));
+            textData.append(";");
+        }
+        textData.append("\n");
+    }
 }
 
 }//namespace
