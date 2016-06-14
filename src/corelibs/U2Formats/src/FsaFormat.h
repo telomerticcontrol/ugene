@@ -56,7 +56,7 @@ private:
     void extactPString(SeekableBuf *fp, uint indexO, uint label, QString &textData, const QString &stringPattern, uint entryIndex = 1);
     void extactCString(SeekableBuf *fp, uint indexO, uint label, QString &textData, const QString &stringPattern, uint entryIndex = 1);
     void extractDateTime(SeekableBuf* fp, uint indexO, QString &textData);
-    void FsaFormat::extractData(SeekableBuf* fp, uint indexO, QString &textData);
+    void extractData(SeekableBuf* fp, uint indexO, QString &textData);
 
     QString formatName;
     QMap<int, QVector<int> > dataMap;

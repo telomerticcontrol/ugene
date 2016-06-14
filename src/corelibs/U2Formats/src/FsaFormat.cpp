@@ -683,7 +683,7 @@ void FsaFormat::extractData(SeekableBuf* fp, uint indexO, QString &textData) {
             for (uint itemNumber = 0; itemNumber < arraySize; itemNumber ++) {
                 char strBuf[2];
                 fp->read(strBuf, 2);
-                ushort readedData = ((strBuf[1] << 8) & 0xFF00) | (strBuf[0] & 0xFF);
+                short readedData = ((strBuf[0] << 8) & 0xFF00) | (strBuf[1] & 0xFF);
                 vec.append(readedData);
             }
             dataMap.insert(i, vec);
@@ -699,7 +699,7 @@ void FsaFormat::extractData(SeekableBuf* fp, uint indexO, QString &textData) {
             for (uint itemNumber = 0; itemNumber < arraySize; itemNumber++) {
                 char strBuf[2];
                 fp->read(strBuf, 2);
-                ushort readedData = ((strBuf[1] << 8) & 0xFF00) | (strBuf[0] & 0xFF);
+                short readedData = ((strBuf[0] << 8) & 0xFF00) | (strBuf[1] & 0xFF);
                 vec.append(readedData);
             }
             dataMap.insert(i, vec);
