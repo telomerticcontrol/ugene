@@ -546,7 +546,7 @@ bool FsaFormat::loadTextObject(SeekableBuf* fp, QString &textData) {
     extractShort(fp, indexO, LANELabel, textData, QString("Sample's lane or capillary number: %1\n"));
     extractShort(fp, indexO, LNTDLabel, textData, QString("Length to detector: %1\n"));
     extractShort(fp, indexO, NLNELabel, textData, QString("Total number of capillaries : %1\n"));
-    extractShort(fp, indexO, DyeWLabel, textData, QString("Dye wawelengths: %1\n"));
+    extractShort(fp, indexO, DyeWLabel, textData, QString("Dye wavelengths: %1\n"));
 
     //char
     extractShort(fp, indexO, CpEPLabel, textData, QString("Capillary type electrophoresis: %1\n"));
