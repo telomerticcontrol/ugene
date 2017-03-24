@@ -183,6 +183,7 @@ MSAHighlightingTab::MSAHighlightingTab(MSAEditor* m)
 void MSAHighlightingTab::initColorCB() {
     colorScheme->blockSignals(true);
     highlightingScheme->blockSignals(true);
+    bool isAlphabetRaw = msa->getMSAObject()->getAlphabet()->getType() == DNAAlphabet_RAW;
 
     MsaColorSchemeRegistry *msaColorSchemeRegistry = AppContext::getMsaColorSchemeRegistry();
     QList<MsaColorSchemeFactory *> colorSchemesFactories = msaColorSchemeRegistry->getMsaColorSchemes(msa->getMSAObject()->getAlphabet()->getType());
@@ -190,7 +191,7 @@ void MSAHighlightingTab::initColorCB() {
 
     colorScheme->clear();
     foreach (MsaColorSchemeFactory *factory, colorSchemesFactories) {
-        colorScheme->addItem(factory->getName());
+        colorScheme->addItem(factory->getName(isAlphabetRaw));
     }
 
     MsaHighlightingSchemeRegistry *msaHighlightingSchemeRegistry = AppContext::getMsaHighlightingSchemeRegistry();
@@ -198,20 +199,39 @@ void MSAHighlightingTab::initColorCB() {
 
     highlightingScheme->clear();
     foreach (MsaHighlightingSchemeFactory *factory, highlightingSchemesFactories) {
-        highlightingScheme->addItem(factory->getName());
+        highlightingScheme->addItem(factory->getName(isAlphabetRaw));
     }
 
     colorScheme->blockSignals(false);
     highlightingScheme->blockSignals(false);
 }
 
+void MSAHighlightingTab::setColorScheme(bool isAlphabetRaw) {
+    MsaColorScheme *scheme = seqArea->getCurrentColorScheme();
+    if (isAlphabetRaw && MsaColorSchemeRegistry::getExcludedIdsFromRawAlphabetSchemes().contains(scheme->getFactory()->getId())) {
+        colorScheme->setCurrentIndex(colorScheme->findText(scheme->getFactory()->getName()));
+    } else {
+        colorScheme->setCurrentIndex(colorScheme->findText(scheme->getFactory()->getName(isAlphabetRaw)));
+    }
+}
+
+void MSAHighlightingTab::setHighlightingScheme(bool isAlphabetRaw) {
+    MsaHighlightingScheme *scheme = seqArea->getCurrentHighlightingScheme();
+    if (isAlphabetRaw && MsaHighlightingSchemeRegistry::getExcludedIdsFromRawAlphabetSchemes().contains(scheme->getFactory()->getId())) {
+        highlightingScheme->setCurrentIndex(highlightingScheme->findText(scheme->getFactory()->getName()));
+    } else {
+        highlightingScheme->setCurrentIndex(highlightingScheme->findText(scheme->getFactory()->getName(isAlphabetRaw)));
+    }
+}
+
 void MSAHighlightingTab::sl_sync() {
+    bool isAlphabetRaw = msa->getMSAObject()->getAlphabet()->getType() == DNAAlphabet_RAW;
     MsaColorScheme *s = seqArea->getCurrentColorScheme();
     SAFE_POINT(s != NULL, "Current scheme is NULL", );
     SAFE_POINT(s->getFactory() != NULL, "Current scheme color factory is NULL", );
 
     colorScheme->blockSignals(true);
-    colorScheme->setCurrentIndex(colorScheme->findText(s->getFactory()->getName()));
+    setColorScheme(isAlphabetRaw);
     colorScheme->blockSignals(false);
 
     MsaHighlightingScheme *sh = seqArea->getCurrentHighlightingScheme();
@@ -223,7 +243,7 @@ void MSAHighlightingTab::sl_sync() {
     highlightingScheme->blockSignals(false);
 
     useDots->blockSignals(true);
-    useDots->setChecked(seqArea->getUseDotsCheckedState());
+    setHighlightingScheme(isAlphabetRaw);
     useDots->blockSignals(false);
 
     sl_updateHint();

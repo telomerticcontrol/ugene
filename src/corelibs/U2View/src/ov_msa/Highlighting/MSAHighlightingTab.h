@@ -60,6 +60,9 @@ private:
     QWidget* createHighlightingGroup();
     void initColorCB();
 
+    void setColorScheme(bool isAlphabetRaw);
+    void setHighlightingScheme(bool isAlphabetRaw);
+
     MSAEditor *msa;
     MSAEditorSequenceArea *seqArea;
     QComboBox *colorScheme;
