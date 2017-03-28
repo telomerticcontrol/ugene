@@ -239,11 +239,11 @@ void MSAHighlightingTab::sl_sync() {
     SAFE_POINT(sh->getFactory() != NULL, "Current highlighting scheme factory is NULL!", );
 
     highlightingScheme->blockSignals(true);
-    highlightingScheme->setCurrentIndex(highlightingScheme->findText(sh->getFactory()->getName()));
+    setHighlightingScheme(isAlphabetRaw);
     highlightingScheme->blockSignals(false);
 
     useDots->blockSignals(true);
-    setHighlightingScheme(isAlphabetRaw);
+    useDots->setChecked(seqArea->getUseDotsCheckedState());
     useDots->blockSignals(false);
 
     sl_updateHint();
