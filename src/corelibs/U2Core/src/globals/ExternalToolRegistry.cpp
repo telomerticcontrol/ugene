@@ -69,6 +69,14 @@ bool ExternalTool::isMuted() const {
 #endif
 }
 
+void ExternalTool::setErrorValidationOutput(const QString &output) {
+    errorValidationOutput = output;
+}
+
+void ExternalTool::setStandardValidationOutput(const QString &output) {
+    standardValidationOutput = output;
+}
+
 ////////////////////////////////////////
 //ExternalToolValidationListener
 ExternalToolValidationListener::ExternalToolValidationListener(const QString& toolName) {

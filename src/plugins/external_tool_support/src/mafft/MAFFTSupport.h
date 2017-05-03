@@ -36,8 +36,11 @@ class MAFFTSupport : public ExternalTool {
 public:
     MAFFTSupport(const QString& name, const QString& path = "");
     GObjectViewWindowContext* getViewContext(){ return viewCtx; }
-public slots:
+
+private slots:
     void sl_runWithExtFileSpecify();
+    void sl_validationStatusChanged(bool isValid);
+
 private:
     GObjectViewWindowContext* viewCtx;
 };

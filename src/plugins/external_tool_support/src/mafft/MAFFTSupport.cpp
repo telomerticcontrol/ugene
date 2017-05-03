@@ -57,13 +57,15 @@ MAFFTSupport::MAFFTSupport(const QString& name, const QString& path) : ExternalT
     }
 
     executableFileName="mafft.bat";
-    validationArguments<<"-help";
+    validationArguments << "-help";
     validMessage="MAFFT";
     description=tr("<i>MAFFT</i> is a multiple sequence alignment program for unix-like operating systems. ");
     versionRegExp=QRegExp("MAFFT v(\\d+\\.\\d+\\w)");
     toolKitName="MAFFT";
 
     AppContext::getAlignmentAlgorithmsRegistry()->registerAlgorithm(new MafftAddToAligmnentAlgorithm());
+
+    connect (this, SIGNAL(si_toolValidationStatusChanged(bool)), SLOT(sl_validationStatusChanged(bool)));
 }
 
 void MAFFTSupport::sl_runWithExtFileSpecify(){
@@ -110,6 +112,14 @@ void MAFFTSupport::sl_runWithExtFileSpecify(){
 
     MAFFTWithExtFileSpecifySupportTask* mAFFTSupportTask=new MAFFTWithExtFileSpecifySupportTask(settings);
     AppContext::getTaskScheduler()->registerTopLevelTask(mAFFTSupportTask);
+}
+
+void MAFFTSupport::sl_validationStatusChanged(bool isValid) {
+    algoLog.details(QString("MAFFT tool validation completed: %1").arg(isValid ? "valid" : "invalid"));
+    algoLog.details("Error output:");
+    algoLog.details(errorValidationOutput);
+    algoLog.details("Standard output:");
+    algoLog.details(standardValidationOutput);
 }
 
 ////////////////////////////////////////

@@ -91,6 +91,10 @@ public:
     bool isValid() const { return isValidTool; }
     bool isMuted() const;
     bool isModule() const { return isModuleTool; }
+
+    void setErrorValidationOutput(const QString &output);
+    void setStandardValidationOutput(const QString &output);
+
 signals:
     void si_pathChanged();
     void si_toolValidationStatusChanged(bool isValid);
@@ -115,6 +119,9 @@ protected:
     QStringList dependencies;           // a list of dependencies for the tool of another external tools (e.g. python for python scripts).
     bool        muted;                  // a muted tool doesn't write its validation error to the log
     bool        isModuleTool;           // a module tool is a part of another external tool
+
+    QString errorValidationOutput;
+    QString standardValidationOutput;
 
 }; // ExternalTool
 

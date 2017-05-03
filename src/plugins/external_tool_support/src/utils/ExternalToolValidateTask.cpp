@@ -205,6 +205,7 @@ bool ExternalToolJustValidateTask::parseLog(const ExternalToolValidation& valida
     errorMsg = validation.possibleErrorsDescr.value(ExternalToolValidation::DEFAULT_DESCR_KEY, "");
 
     QString errLog = QString(externalToolProcess->readAllStandardError());
+    tool->setErrorValidationOutput(errLog);
     if (!errLog.isEmpty()) {
         if (errLog.contains(QRegExp(validation.expectedMsg))) {
             isValid = true;
@@ -222,6 +223,7 @@ bool ExternalToolJustValidateTask::parseLog(const ExternalToolValidation& valida
     }
 
     QString log = QString(externalToolProcess->readAllStandardOutput());
+    tool->setStandardValidationOutput(log);
     if (!log.isEmpty()) {
         if (log.contains(QRegExp(validation.expectedMsg))) {
             isValid = true;
