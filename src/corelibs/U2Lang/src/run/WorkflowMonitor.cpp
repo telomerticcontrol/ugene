@@ -102,7 +102,10 @@ QString WorkflowMonitor::actorName(const QString &id) const {
     return procMap[id]->getLabel();
 }
 
-void WorkflowMonitor::addOutputFile(const QString &url, const QString &producer, bool openBySystem) {
+void WorkflowMonitor::addOutputFile(const QString &url, const QString &producer, bool openBySystem) { //producer - ActorId
+    if (schema->isDashboardOutputMuted(producer)) {
+        return;
+    }
     CHECK(!url.isEmpty(), );
     FileInfo info(MonitorUtils::toSlashedUrl(url), producer, openBySystem);
 

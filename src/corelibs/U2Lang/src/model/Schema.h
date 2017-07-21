@@ -89,6 +89,7 @@ public:
 
     Actor* actorById(ActorId) const;
     QList<Actor*> actorsByOwnerId(ActorId) const;
+    bool isDashboardOutputMuted(const ActorId &id) const;
 
     QString getDomain() const;
     void setDomain(const QString & d);
@@ -125,6 +126,9 @@ public:
     const QList<Wizard*> & getWizards() const;
     void setWizards(const QList<Wizard*> &value);
     QList<Wizard*> takeWizards();
+    
+    void muteActor(ActorId &id);
+    void removeFromMutedActors(ActorId &id);
 
     static ActorId uniqueActorId(const QString &id, const QList<Actor*> &procs);
 
@@ -145,6 +149,8 @@ private:
     // if you include this schema to another schema then here is new type name
     QString includedTypeName;
     QList<Wizard*> wizards;
+
+    QStringList mutedActors;
 
 private:
     void setAliasedAttributes(Actor *proc, Actor *subProc);

@@ -90,6 +90,10 @@ QList<Actor*> Schema::actorsByOwnerId(ActorId id) const {
     return res;
 }
 
+bool Schema::isDashboardOutputMuted(const ActorId &id) const {
+    return mutedActors.contains(id);
+}
+
 QString Schema::getDomain() const {
     return domain;
 }
@@ -404,6 +408,14 @@ QList<Wizard*> Schema::takeWizards() {
     QList<Wizard*> result = wizards;
     wizards.clear();
     return result;
+}
+
+void Schema::muteActor(ActorId &id) {
+    mutedActors.append(id);
+}
+
+void Schema::removeFromMutedActors(ActorId &id) {
+    mutedActors.removeAll(id);
 }
 
 void Schema::removeProcess(Actor *actor) {

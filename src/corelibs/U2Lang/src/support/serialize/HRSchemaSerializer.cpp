@@ -1157,6 +1157,9 @@ static void parseMeta(WorkflowSchemaReaderData & data) {
                 data.meta->estimationsCode = code;
             }
             data.tokenizer.assertToken(Constants::BLOCK_END);
+        } else if (Constants::MUTED_ACTORS == tok) {
+            data.tokenizer.assertToken(Constants::BLOCK_START);
+            QString code = data.tokenizer.take();
         } else {
             throw ReadFailed(Constants::UNDEFINED_META_BLOCK.arg(tok));
         }

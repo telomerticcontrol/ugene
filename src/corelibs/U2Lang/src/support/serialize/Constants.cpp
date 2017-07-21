@@ -103,6 +103,7 @@ const QString Constants::ESTIMATIONS           = "estimations";
 const QString Constants::VALIDATOR             = ".validator";
 const QString Constants::V_TYPE                = "type";
 const QString Constants::V_SCRIPT              = "script";
+const QString Constants::MUTED_ACTORS          = "muted-actors";
 
 } // WorkflowSerialize
 } // U2

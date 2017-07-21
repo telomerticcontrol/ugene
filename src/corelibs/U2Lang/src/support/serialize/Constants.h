@@ -108,6 +108,7 @@ public:
     static const QString VALIDATOR;
     static const QString V_TYPE;
     static const QString V_SCRIPT;
+    static const QString MUTED_ACTORS;
 };
 
 } // WorkflowSerialize
