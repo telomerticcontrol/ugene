@@ -367,7 +367,7 @@ const MAlignmentRow& MSAEditor::getRowByLineNumber(int lineNumber) const {
 
 void MSAEditor::sl_changeFont() {
     bool ok = false;
-    QFont f = QFontDialog::getFont(&ok, font, widget, tr("Select font for alignment"));
+    QFont f = QFontDialog::getFont(&ok, font, widget, tr("Select font for alignment"), QFontDialog::DontUseNativeDialog);
     if (!ok) {
         return;
     }
@@ -614,6 +614,12 @@ void MSAEditor::sl_onContextMenuRequested(const QPoint & pos) {
 
 const QRect& MSAEditor::getCurrentSelection() const {
     return ui->seqArea->getSelection().getRect();
+}
+
+void MSAEditor::setFontPointSize(int pointSize) {
+    QFont newFont = getFont();
+    newFont.setPointSize(pointSize);
+    setFont(newFont);
 }
 
 void MSAEditor::updateActions() {

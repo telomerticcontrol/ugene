@@ -49,7 +49,7 @@ class MAlignment;
 class MAlignmentModInfo;
 class MSAEditorSelection;
 
-class U2VIEW_EXPORT MSAEditorNameList: public QWidget {
+class U2VIEW_EXPORT MSAEditorNameList : public QWidget {
     Q_OBJECT
     Q_DISABLE_COPY(MSAEditorNameList)
 public:
@@ -79,6 +79,8 @@ private slots:
     void sl_modelChanged();
 
     void sl_onGroupColorsChanged(const GroupColorSchema&);
+    void sl_selectRowNamesFont();
+
 protected:
     void updateContent();
     virtual void updateScrollBar();
@@ -124,6 +126,8 @@ private:
     void drawSequenceItem(QPainter& p, int s, const QString& name, bool selected, const U2Region& yRange, int pos);
     virtual void drawRefSequence(QPainter &p, QRect r);
     void drawFocus(QPainter& p);
+    void saveFont(const QFont &font);
+
     QFont getFont(bool selected) const;
     QRect calculateTextRect(const U2Region& yRange, bool selected) const;
     QRect calculateButtonRect(const QRect& itemRect) const;
@@ -143,7 +147,10 @@ private:
     QAction*            editSequenceNameAction;
     QAction*            copyCurrentSequenceAction;
     QAction*            removeSequenceAction;
+    QAction*            selectRowNamesFontAction;
     QPixmap*            cachedView;
+
+    QFont               namesFont;
 
     static const int CROSS_SIZE = 9;
     static const int CHILDREN_OFFSET = 8;

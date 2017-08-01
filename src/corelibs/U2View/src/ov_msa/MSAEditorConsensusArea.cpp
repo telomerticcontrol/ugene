@@ -74,6 +74,7 @@ MSAEditorConsensusArea::MSAEditorConsensusArea(MSAEditorUI *_ui)
 
     connect(editor, SIGNAL(si_buildStaticMenu(GObjectView *, QMenu *)), SLOT(sl_buildStaticMenu(GObjectView *, QMenu *)));
     connect(editor, SIGNAL(si_buildPopupMenu(GObjectView * , QMenu *)), SLOT(sl_buildContextMenu(GObjectView *, QMenu *)));
+    connect(editor, SIGNAL(si_fontChanged(QFont)), SLOT(sl_fontChanged()));
 
     copyConsensusAction = new QAction(tr("Copy consensus"), this);
     copyConsensusAction->setObjectName("Copy consensus");
@@ -522,6 +523,11 @@ void MSAEditorConsensusArea::sl_zoomOperationPerformed( bool resizeModeChanged )
     } else {
         setupFontAndHeight();
     }
+}
+
+void MSAEditorConsensusArea::sl_fontChanged() {
+    completeRedraw = true;
+    update();
 }
 
 void MSAEditorConsensusArea::sl_selectionChanged(const MSAEditorSelection& current, const MSAEditorSelection& prev) {
