@@ -148,6 +148,8 @@ public:
     const QRect& getCurrentSelection() const;
 
     const QFont& getFont() const {return font;}
+    void setFontPointSize(int pointSize);
+
     int getFirstVisibleBase() const;
 
     //Return alignment row that is displayed on target line in MSAEditor

@@ -19,29 +19,31 @@
  * MA 02110-1301, USA.
  */
 
-#include "MSAEditorNameList.h"
-#include "MSAEditor.h"
-#include "MSAEditorSequenceArea.h"
+#include <QApplication>
+#include <QClipboard>
+#include <QFontDialog>
+#include <QInputDialog>
+#include <QMouseEvent>
+#include <QPainter>
 
-#include <U2Core/MAlignmentObject.h>
+#include <U2Core/AppContext.h>
 #include <U2Core/MAlignment.h>
+#include <U2Core/MAlignmentObject.h>
+#include <U2Core/Settings.h>
 #include <U2Core/U2OpStatusUtils.h>
 
 #include <U2Gui/GUIUtils.h>
 
-#if (QT_VERSION < 0x050000) //Qt 5
-#include <QtGui/QApplication>
-#include <QtGui/QInputDialog>
-#else
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QInputDialog>
-#endif
-#include <QtGui/QClipboard>
-#include <QtGui/QPainter>
-#include <QtGui/QMouseEvent>
-
+#include "MSAEditor.h"
+#include "MSAEditorNameList.h"
+#include "MSAEditorSequenceArea.h"
 
 namespace U2 {
+
+#define MOBJECT_SETTINGS_NAMES_FONT_FAMILY    "names_font_family"
+#define MOBJECT_SETTINGS_NAMES_FONT_SIZE      "names_font_size"
+#define MOBJECT_SETTINGS_NAMES_FONT_ITALIC    "names_font_italic"
+#define MOBJECT_SETTINGS_NAMES_FONT_BOLD      "names_font_bold"
 
 #define CHILDREN_OFFSET 8
 
@@ -50,6 +52,7 @@ MSAEditorNameList::MSAEditorNameList(MSAEditorUI* _ui, QScrollBar* _nhBar)
       ui(_ui),
       nhBar(_nhBar),
       singleSelecting(false),
+      namesFont(_ui->editor->getFont()),
       editor(_ui->editor)
 {
     setObjectName("msa_editor_name_list");
@@ -61,6 +64,12 @@ MSAEditorNameList::MSAEditorNameList(MSAEditorUI* _ui, QScrollBar* _nhBar)
     curSeq = 0;
     startSelectingSeq = curSeq;
     rubberBand = new QRubberBand(QRubberBand::Rectangle, this);
+
+    Settings *settings = AppContext::getSettings();
+    namesFont.setFamily(settings->getValue(MOBJECT_SETTINGS_ROOT + MOBJECT_SETTINGS_NAMES_FONT_FAMILY, MOBJECT_DEFAULT_FONT_FAMILY).toString());
+    namesFont.setPointSize(settings->getValue(MOBJECT_SETTINGS_ROOT + MOBJECT_SETTINGS_NAMES_FONT_SIZE, MOBJECT_DEFAULT_FONT_SIZE).toInt());
+    namesFont.setItalic(settings->getValue(MOBJECT_SETTINGS_ROOT + MOBJECT_SETTINGS_NAMES_FONT_ITALIC, true).toBool());
+    namesFont.setBold(settings->getValue(MOBJECT_SETTINGS_ROOT + MOBJECT_SETTINGS_NAMES_FONT_BOLD, false).toBool());
 
     connect(editor, SIGNAL(si_buildStaticMenu(GObjectView*, QMenu*)), SLOT(sl_buildStaticMenu(GObjectView*, QMenu*)));
 
@@ -75,6 +84,10 @@ MSAEditorNameList::MSAEditorNameList(MSAEditorUI* _ui, QScrollBar* _nhBar)
     removeSequenceAction->setObjectName("Remove sequence");
     connect(removeSequenceAction, SIGNAL(triggered()), SLOT(sl_removeSequence()));
     addAction(removeSequenceAction);
+
+    selectRowNamesFontAction = new QAction(tr("Change row names font"), this);
+    connect(selectRowNamesFontAction, SIGNAL(triggered()), SLOT(sl_selectRowNamesFont()));
+    addAction(selectRowNamesFontAction);
 
     connect(editor, SIGNAL(si_buildPopupMenu(GObjectView* , QMenu*)), SLOT(sl_buildContextMenu(GObjectView*, QMenu*)));
     if (editor->getMSAObject()) {
@@ -220,6 +233,10 @@ void MSAEditorNameList::buildMenu(QMenu* m) {
 
     copyCurrentSequenceAction->setDisabled(getSelectedRow() == -1);
     editMenu->insertAction(editMenu->actions().first(), editSequenceNameAction);
+
+    QMenu* viewMenu = GUIUtils::findSubMenu(m, MSAE_MENU_VIEW);
+    SAFE_POINT(viewMenu != NULL, "viewMenu not found", );
+    viewMenu->addAction(selectRowNamesFontAction);
 }
 
 int MSAEditorNameList::getSelectedRow() const {
@@ -583,6 +600,8 @@ void MSAEditorNameList::focusOutEvent(QFocusEvent* fe) {
 }
 
 void MSAEditorNameList::sl_fontChanged() {
+    namesFont.setPointSize(editor->getFont().pointSize());
+    saveFont(namesFont);
     completeRedraw = true;
     updateScrollBar();
     update();
@@ -599,15 +618,23 @@ void MSAEditorNameList::sl_onGroupColorsChanged(const GroupColorSchema& colors) 
     update();
 }
 
+void MSAEditorNameList::sl_selectRowNamesFont() {
+    bool ok = false;
+    QFont newFont = QFontDialog::getFont(&ok, namesFont, ui, tr("Select Font for Row Names"), QFontDialog::DontUseNativeDialog);
+    CHECK(ok, );
+
+    namesFont = newFont;
+    editor->setFontPointSize(namesFont.pointSize());
+}
+
 //////////////////////////////////////////////////////////////////////////
 // draw methods
 QFont MSAEditorNameList::getFont(bool selected) const {
-    QFont f = ui->editor->getFont();
-    f.setItalic(true);
+    QFont font = namesFont;
     if (selected) {
-        f.setBold(true);
+        font.setBold(true);
     }
-    return f;
+    return font;
 }
 
 QRect MSAEditorNameList::calculateTextRect(const U2Region& yRange, bool selected) const {
@@ -825,6 +852,14 @@ void MSAEditorNameList::drawFocus(QPainter& p) {
         p.setPen(QPen(Qt::black, 1, Qt::DotLine));
         p.drawRect(0, 0, width()-1, height()-1);
     }
+}
+
+void MSAEditorNameList::saveFont(const QFont &font) {
+    Settings *settings = AppContext::getSettings();
+    settings->setValue(MOBJECT_SETTINGS_ROOT + MOBJECT_SETTINGS_NAMES_FONT_FAMILY, font.family());
+    settings->setValue(MOBJECT_SETTINGS_ROOT + MOBJECT_SETTINGS_NAMES_FONT_SIZE, font.pointSize());
+    settings->setValue(MOBJECT_SETTINGS_ROOT + MOBJECT_SETTINGS_NAMES_FONT_ITALIC, font.italic());
+    settings->setValue(MOBJECT_SETTINGS_ROOT + MOBJECT_SETTINGS_NAMES_FONT_BOLD, font.bold());
 }
 
 void MSAEditorNameList::sl_onScrollBarActionTriggered(int scrollAction)
