@@ -34,6 +34,7 @@
 #include <U2Core/ModifySequenceObjectTask.h>
 #include <U2Core/Settings.h>
 #include <U2Core/U2Msa.h>
+#include <U2Core/U2Mod.h>
 #include <U2Core/U2OpStatusUtils.h>
 #include <U2Core/U2SafePoints.h>
 
@@ -51,6 +52,11 @@ DetViewSequenceEditor::DetViewSequenceEditor(DetView* _view)
     reset();
     connect(&animationTimer, SIGNAL(timeout()), SLOT(sl_changeCursorColor()));
     setParent(view);
+
+    // TODO_SVEDIT: read only should be checked and buttons should be updated
+    U2OpStatus2Log os;
+    U2SequenceObject* obj = view->getSequenceObject();
+    obj->setTrackMod(os, TrackOnUpdate);
 }
 
 DetViewSequenceEditor::~DetViewSequenceEditor() {
@@ -195,7 +201,6 @@ void DetViewSequenceEditor::navigate(int newPos, bool shiftPressed) {
 void DetViewSequenceEditor::insertChar(int character) {
     U2SequenceObject* seqObj = view->getSequenceObject();
     SAFE_POINT(seqObj != NULL, "SeqObject is NULL", );
-    U2OpStatusImpl os;
     const DNASequence seq(QByteArray(1, character));
     U2Region r;
     SequenceObjectContext* ctx = view->getSequenceContext();
@@ -256,6 +261,10 @@ void DetViewSequenceEditor::deleteChar(int key) {
 }
 
 void DetViewSequenceEditor::runModifySeqTask(U2SequenceObject* seqObj, const U2Region &region, const DNASequence &sequence) {
+    U2OpStatusImpl os;
+    U2UseCommonUserModStep userModStep(seqObj->getEntityRef(), os);
+    Q_UNUSED(userModStep);
+
     Settings* s = AppContext::getSettings();
     U1AnnotationUtils::AnnotationStrategyForResize strategy =
             s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_ANNOTATION_STRATEGY,

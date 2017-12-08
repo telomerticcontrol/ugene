@@ -23,9 +23,12 @@
 #define _U2_ADV_SINGLE_SEQ_WIDGET_H_
 
 #include "ADVSequenceWidget.h"
+#include "PanView.h"
+
 #include <U2Core/U2Region.h>
 #include <U2Core/GAutoDeleteList.h>
-#include "PanView.h"
+
+#include <U2View/UndoRedoFramework.h>
 
 #include <QWidget>
 #include <QLabel>
@@ -187,7 +190,9 @@ private:
     QList<GSequenceLineView*>       lineViews;
     QVBoxLayout*                    linesLayout;
     QSplitter*                      linesSplitter;
-    ADVSingleSequenceHeaderWidget   *headerWidget;
+    ADVSingleSequenceHeaderWidget*  headerWidget;
+
+    SequenceUndoRedoFramework*      undoFWK;
 
     QAction*        toggleViewAction;
     QAction*        togglePanViewAction;

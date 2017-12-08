@@ -56,6 +56,19 @@ U2SequenceObject::U2SequenceObject(const QString& name, const U2EntityRef& seqRe
     entityRef = seqRef;
 }
 
+void U2SequenceObject::setTrackMod(U2OpStatus &os, U2TrackModType trackMod) {
+    // Prepare the connection
+    DbiConnection con(entityRef.dbiRef, os);
+    CHECK_OP(os, );
+
+    U2ObjectDbi *objectDbi = con.dbi->getObjectDbi();
+    SAFE_POINT(NULL != objectDbi, "NULL Object Dbi", );
+
+    // Set the new status
+    objectDbi->setTrackModType(entityRef.entityId, trackMod, os);
+}
+
+
 bool U2SequenceObject::checkConstraints(const GObjectConstraints* c) const {
     const U2SequenceObjectConstraints* dnac = qobject_cast<const U2SequenceObjectConstraints*>(c);
     SAFE_POINT(dnac != NULL, "Not a U2SequenceObjectConstraints!", false);

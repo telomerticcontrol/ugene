@@ -34,8 +34,12 @@ class U2OpStatus;
 
 class U2CORE_EXPORT U2SequenceObject : public GObject {
     Q_OBJECT
+    friend class SequenceUndoRedoFramework; // TODO_SVEDIT: avoid friend class
 public:
     U2SequenceObject(const QString& name, const U2EntityRef& seqRef, const QVariantMap& hintsMap = QVariantMap());
+
+    // TODO_SVEDIT: move this to GObject, doubled in MultipleAlignmentObject
+    void setTrackMod(U2OpStatus &os, U2TrackModType trackMod);
 
     U2EntityRef getSequenceRef() const {return getEntityRef();}
 

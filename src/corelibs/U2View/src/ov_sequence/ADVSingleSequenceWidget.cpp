@@ -70,6 +70,7 @@ ADVSingleSequenceWidget::ADVSingleSequenceWidget(ADVSequenceObjectContext* seqCt
       overview(NULL)
 {
     seqContexts.append(seqCtx);
+    undoFWK = new SequenceUndoRedoFramework(this, seqCtx->getSequenceObject());
 
     toggleViewAction = new QAction(this);
     toggleViewAction->setObjectName("show_hide_all_views");
@@ -200,6 +201,9 @@ void ADVSingleSequenceWidget::init() {
     } else {
         ttButton = NULL;
     }
+    detView->addActionToLocalToolbar(undoFWK->getUndoAction());
+    detView->addActionToLocalToolbar(undoFWK->getRedoAction());
+    connect(undoFWK, SIGNAL(si_updateRequired()), detView, SLOT(sl_sequenceChanged()));
 
     QAction* shotScreenAction = new QAction(QIcon(":/core/images/cam2.png"), tr("Export image"), this);
     shotScreenAction->setObjectName("export_image");

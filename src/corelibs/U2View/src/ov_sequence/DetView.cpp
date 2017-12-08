@@ -76,8 +76,7 @@ DetView::DetView(QWidget* p, SequenceObjectContext* ctx)
 
     editor = new DetViewSequenceEditor(this);
     editAction = new QAction(tr("Edit sequence"), this);
-    // TODO_SVEDIT: setup the icon
-    editAction->setIcon(QIcon(":core/images/todo.png"));
+    editAction->setIcon(QIcon(":core/images/edit.png"));
     editAction->setObjectName("edit_sequence_action");
     connect(editAction, SIGNAL(triggered(bool)), editor, SLOT(sl_editMode(bool)));
 
@@ -121,6 +120,8 @@ DetView::DetView(QWidget* p, SequenceObjectContext* ctx)
     pack();
 
     updateActions();
+
+    connect(ctx->getSequenceObject(), SIGNAL(si_sequenceChanged()), SLOT(sl_sequenceChanged()));
 
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
 }
