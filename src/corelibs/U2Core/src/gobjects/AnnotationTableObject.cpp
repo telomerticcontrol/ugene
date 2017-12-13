@@ -21,6 +21,7 @@
 
 #include <QCoreApplication>
 
+#include <U2Core/AnnotationModification.h>
 #include <U2Core/AnnotationTableObjectConstraints.h>
 #include <U2Core/DocumentModel.h>
 #include <U2Core/GHints.h>
@@ -75,6 +76,18 @@ AnnotationGroup * AnnotationTableObject::getRootGroup() {
     return rootGroup;
 }
 
+void AnnotationTableObject::reload() {
+    blockSignals(true);
+
+    dataLoaded = false;
+    delete rootGroup;
+    rootGroup = NULL;
+    // TODO_SVEDIT: is it necessary?
+//    ensureDataLoaded();
+
+    blockSignals(false);
+}
+
 typedef QPair<AnnotationGroup *, QList<SharedAnnotationData> > AnnotationGroupData;
 
 QList<Annotation *> AnnotationTableObject::addAnnotations(const QList<SharedAnnotationData> &annotations, const QString &groupName) {
@@ -84,7 +97,6 @@ QList<Annotation *> AnnotationTableObject::addAnnotations(const QList<SharedAnno
     ensureDataLoaded();
 
     if (groupName.isEmpty()) {
-        QString previousGroupName;
         QMap<QString, AnnotationGroupData> group2Annotations;
         foreach (const SharedAnnotationData &a, annotations) {
             const QString groupName = a->name;
@@ -258,6 +270,10 @@ void AnnotationTableObject::emit_onGroupRenamed(AnnotationGroup *g) {
 
 void AnnotationTableObject::emit_onAnnotationsInGroupRemoved(const QList<Annotation *> &l, AnnotationGroup *gr) {
     emit si_onAnnotationsInGroupRemoved(l, gr);
+}
+
+void AnnotationTableObject::emit_update() {
+    emit si_update();
 }
 
 void AnnotationTableObject::loadDataCore(U2OpStatus &os) {

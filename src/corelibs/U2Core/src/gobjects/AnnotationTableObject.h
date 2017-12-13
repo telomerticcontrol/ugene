@@ -59,6 +59,9 @@ public:
      * Returns root group
      */
     AnnotationGroup *       getRootGroup();
+
+    // TODO_SVEDIT: check the method
+    void reload();
     /**
      * Adds to DB a set of features based on @annotations
      */
@@ -102,6 +105,7 @@ public:
     void                    emit_onGroupRenamed(AnnotationGroup *g);
     void                    emit_onAnnotationsInGroupRemoved(const QList<Annotation *> &l, AnnotationGroup *gr);
 
+    void emit_update();
 signals:
     void                    si_onAnnotationsAdded(const QList<Annotation *> &a);
     void                    si_onAnnotationsRemoved(const QList<Annotation *> &a);
@@ -110,6 +114,8 @@ signals:
     void                    si_onGroupCreated(AnnotationGroup *g);
     void                    si_onGroupRemoved(AnnotationGroup *p, AnnotationGroup *removed);
     void                    si_onGroupRenamed(AnnotationGroup *g);
+
+    void si_update();
 
 protected:
     void                    loadDataCore(U2OpStatus &os);

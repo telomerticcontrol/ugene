@@ -97,8 +97,10 @@ private slots:
     void sl_paste();
     void sl_pasteFinished(Task* pasteTask);
 
+public slots:// TODO_SVEDIT: make it right
     void sl_onAnnotationObjectAdded(AnnotationTableObject *obj);
     void sl_onAnnotationObjectRemoved(AnnotationTableObject *obj);
+private slots:
     void sl_onAnnotationObjectRenamed(const QString &oldName);
 
     void sl_onAnnotationsAdded(const QList<Annotation *> &);

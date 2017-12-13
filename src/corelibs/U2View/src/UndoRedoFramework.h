@@ -29,6 +29,7 @@
 
 namespace U2 {
 
+class AnnotationTableObject;
 class MultipleAlignmentObject;
 class U2SequenceObject;
 
@@ -77,6 +78,16 @@ private slots:
 
 private:
     U2SequenceObject* getSequenceObject();
+    void updateObject(MaModificationType type);
+};
+
+class AnnotationUndoRedoFramework : public UndoRedoFramework {
+    Q_OBJECT
+public:
+    AnnotationUndoRedoFramework(QObject *p, AnnotationTableObject* annTableObj);
+
+private:
+    AnnotationTableObject* getAnnotationTableObject();
     void updateObject(MaModificationType type);
 };
 

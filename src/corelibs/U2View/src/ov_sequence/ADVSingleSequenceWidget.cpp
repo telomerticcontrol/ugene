@@ -55,6 +55,7 @@
 #include "Overview.h"
 #include "image_export/SingleSequenceImageExportController.h"
 #include "ov_sequence/codon_table/CodonTable.h"
+#include "AnnotationsTreeView.h"
 
 namespace U2 {
 
@@ -71,6 +72,14 @@ ADVSingleSequenceWidget::ADVSingleSequenceWidget(ADVSequenceObjectContext* seqCt
 {
     seqContexts.append(seqCtx);
     undoFWK = new SequenceUndoRedoFramework(this, seqCtx->getSequenceObject());
+    QList<AnnotationTableObject*> annTableList = ctx->getAnnotationObjects();
+    if (annTableList.size() == 1) {
+        // TODO_SVEDIT: tmp for anns undo-redo testing
+        annsUndoFWK = new AnnotationUndoRedoFramework(this, annTableList.first());
+        connect(annTableList.first(), SIGNAL(si_update()), SLOT(sl_reloadAnnTable()));
+    } else {
+        annsUndoFWK  = NULL;
+    }
 
     toggleViewAction = new QAction(this);
     toggleViewAction->setObjectName("show_hide_all_views");
@@ -242,6 +251,15 @@ void ADVSingleSequenceWidget::init() {
     togglePanViewAction->setText(isPanViewCollapsed() ? tr("Show zoom view") : tr("Hide zoom view"));
     toggleDetViewAction->setText(isDetViewCollapsed() ? tr("Show details view") : tr("Hide details view"));
     toggleOverviewAction->setText(isOverviewCollapsed() ? tr("Show overview") : tr("Hide overview"));
+
+    // TODO_SVEDIT: test stuff
+    if (annsUndoFWK != NULL) {
+        QToolBar* bar = headerWidget->getStandardToolBar();
+        QAction* undo = bar->addAction("Undo");
+        connect(undo, SIGNAL(triggered(bool)), annsUndoFWK->getUndoAction(), SIGNAL(triggered(bool)));
+        QAction* redo = bar->addAction("Redo");
+        connect(redo, SIGNAL(triggered(bool)), annsUndoFWK->getRedoAction(), SIGNAL(triggered(bool)));
+    }
 }
 
 
@@ -919,6 +937,20 @@ void ADVSingleSequenceWidget::updateSelectionActions() {
 
     selectInAnnotationRangeAction->setEnabled(selRegs.size() == 2 && !selRegs[0].intersects(selRegs[1]));
     selectOutAnnotationRangeAction->setEnabled(!selRegs.isEmpty());
+}
+
+void ADVSingleSequenceWidget::sl_reloadAnnTable() {
+    coreLog.info("Try to unload table");
+    AnnotationTableObject* t = qobject_cast<AnnotationTableObject*>(sender());
+    SAFE_POINT(t != NULL, "reload annotation without annotation type", );
+    ctx->getAnnotationsView()->sl_onAnnotationObjectRemoved(t);
+    seqContexts.first()->removeAnnotationObject(t);
+    coreLog.info("ADVSingleSequenceWidget: remove ann table from the first context");
+
+    t->reload();
+
+    seqContexts.first()->addAnnotationObject(t);
+    ctx->getAnnotationsView()->sl_onAnnotationObjectAdded(t);
 }
 
 void ADVSingleSequenceWidget::sl_toggleView(){

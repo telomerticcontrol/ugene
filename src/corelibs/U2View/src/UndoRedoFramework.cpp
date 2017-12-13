@@ -19,6 +19,7 @@
  * MA 02110-1301, USA.
  */
 
+#include <U2Core/AnnotationTableObject.h>
 #include <U2Core/DNASequenceObject.h>
 #include <U2Core/MultipleSequenceAlignmentObject.h>
 #include <U2Core/U2DbiUtils.h>
@@ -158,6 +159,29 @@ void SequenceUndoRedoFramework::updateObject(MaModificationType type) {
     U2SequenceObject* seq = getSequenceObject();
     seq->sl_resetDataCaches();
     emit si_updateRequired();
+}
+
+AnnotationUndoRedoFramework::AnnotationUndoRedoFramework(QObject *p, AnnotationTableObject *annTableObj)
+    : UndoRedoFramework(p, annTableObj) {
+    connect(annTableObj, SIGNAL(si_onAnnotationModified(AnnotationModification)), SLOT(sl_lockedStateChanged()));
+    connect(annTableObj, SIGNAL(si_modifiedStateChanged()), SLOT(sl_lockedStateChanged()));
+    connect(annTableObj, SIGNAL(si_nameChanged(QString)), SLOT(sl_lockedStateChanged()));
+    connect(annTableObj, SIGNAL(si_onAnnotationsRemoved(QList<Annotation*>)), SLOT(sl_lockedStateChanged()));
+    // TODO_SVEDIT: more connection should be added for any kind of editing of annotation
+
+    // TODO_SVEDIT: tmps
+    connect(undoAction, SIGNAL(triggered(bool)), SLOT(sl_lockedStateChanged()));
+    connect(redoAction, SIGNAL(triggered(bool)), SLOT(sl_lockedStateChanged()));
+}
+
+AnnotationTableObject* AnnotationUndoRedoFramework::getAnnotationTableObject() {
+    return dynamic_cast<AnnotationTableObject*>(obj);
+}
+
+void AnnotationUndoRedoFramework::updateObject(MaModificationType /*type*/) {
+    // TODO_SVEDIT: use type??
+    AnnotationTableObject* tableObj = getAnnotationTableObject();
+    tableObj->emit_update();
 }
 
 MsaUndoRedoFramework::MsaUndoRedoFramework(QObject *p, MultipleAlignmentObject *maObj)

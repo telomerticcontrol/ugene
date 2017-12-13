@@ -19,6 +19,7 @@
  * MA 02110-1301, USA.
  */
 
+#include <U2Core/U2DbiPackUtils.h>
 #include <U2Core/U2SqlHelpers.h>
 #include <U2Core/U2SafePoints.h>
 
@@ -120,6 +121,8 @@ private:
 void SQLiteFeatureDbi::createAnnotationTableObject(U2AnnotationTable &table, const QString &folder, U2OpStatus &os) {
     dbi->getSQLiteObjectDbi()->createObject(table, folder, U2DbiObjectRank_TopLevel, os);
     CHECK_OP(os,);
+    // TODO_SVEDIT: test
+    dbi->getSQLiteObjectDbi()->setTrackModType(table.id, TrackOnUpdate, os);
 
     static const QString queryString("INSERT INTO AnnotationTable (object, rootId) VALUES(?1, ?2)");
     SQLiteWriteQuery q(queryString, db, os);
@@ -627,6 +630,30 @@ void SQLiteFeatureDbi::updateLocation(const U2DataId& featureId, const U2Feature
     DBI_TYPE_CHECK(featureId, U2Type::Feature, os,);
 
     SQLiteTransaction t(db, os);
+    Q_UNUSED(t);
+
+    U2DataId tableId = getFeatureTableId(featureId, os);
+    coreLog.info(tableId);
+    SAFE_POINT_OP(os, );
+    U2Feature f = dbi->getFeatureDbi()->getFeature(featureId, os);
+    SAFE_POINT_OP(os, );
+
+    SQLiteModificationAction updateAction(dbi, tableId); // here should be ann.table object id!!!
+    updateAction.prepare(os);
+    coreLog.info("Action prepared");
+    SAFE_POINT_OP(os, );
+
+    QByteArray modDetails;
+    // TODO_SVEDIT: return back later
+//    if (TrackOnUpdate == updateAction.getTrackModType()) {
+        U2FeatureLocation oldLocation = f.location;
+                //dbi->getSequenceDbi()->getSequenceData(sequenceId, regionToReplace, os);
+        SAFE_POINT_OP(os, );
+        modDetails = U2DbiPackUtils::packFeatureLocation(featureId, oldLocation, location);
+        coreLog.info(modDetails);
+//        modDetails = U2DbiPackUtils::packSequenceDataDetails(regionToReplace, oldSeq, dataToInsert, hints);
+//    }
+
 
     SQLiteWriteQuery qf("UPDATE Feature SET strand = ?1, start = ?2, len = ?3 WHERE id = ?4" , db, os);
     qf.bindInt32(1, location.strand.getDirectionValue());
@@ -636,11 +663,17 @@ void SQLiteFeatureDbi::updateLocation(const U2DataId& featureId, const U2Feature
     qf.execute();
     CHECK_OP(os,);
 
+    updateAction.addModification(tableId, U2ModType::featureLocationUpdated, modDetails, os);
+    SAFE_POINT_OP(os, );
+
     SQLiteWriteQuery qr("UPDATE FeatureLocationRTreeIndex SET start = ?1, end = ?2 WHERE id = ?3" , db, os);
     qr.bindInt64(1, location.region.startPos);
     qr.bindInt64(2, location.region.endPos());
     qr.bindDataId(3, featureId);
     qr.execute();
+
+    updateAction.complete(os);
+    SAFE_POINT_OP(os, );
 }
 
 void SQLiteFeatureDbi::updateType(const U2DataId &featureId, U2FeatureType newType, U2OpStatus &os) {
@@ -737,6 +770,35 @@ void SQLiteFeatureDbi::removeFeaturesByRoot(const U2DataId &rootId, U2OpStatus &
     CHECK_OP(os,);
 
     SQLiteWriteQuery(getQueryForFeatureDeletionTrigger(), db, os).execute();
+}
+
+void SQLiteFeatureDbi::undo(const U2DataId& annTableId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
+    // get the feature id first
+    if (U2ModType::featureLocationUpdated == modType) {
+        undoUpdateFeatureLocation(modDetails, os);
+    } else if (U2ModType::featureNameUpdated == modType) {
+        undoUpdateFeatureName(annTableId, modDetails, os);
+    } else if (U2ModType::featureKeyUpdated == modType) {
+        undoUpdateFeatureKey(annTableId, modDetails, os);
+    }
+    else {
+        os.setError(QString("Unexpected modification type '%1'!").arg(QString::number(modType)));
+        return;
+    }
+}
+
+void SQLiteFeatureDbi::redo(const U2DataId& annTableId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
+    if (U2ModType::featureLocationUpdated == modType) {
+        redoUpdateFeatureLocation(modDetails, os);
+    } else if (U2ModType::featureNameUpdated == modType) {
+        redoUpdateFeatureName(annTableId, modDetails, os);
+    } else if (U2ModType::featureKeyUpdated == modType) {
+        redoUpdateFeatureKey(annTableId, modDetails, os);
+    }
+    else {
+        os.setError(QString("Unexpected modification type '%1'!").arg(QString::number(modType)));
+        return;
+    }
 }
 
 U2DbiIterator<U2Feature> * SQLiteFeatureDbi::getFeaturesByRegion(const U2Region& reg, const U2DataId& rootId, const QString& featureName,
@@ -865,6 +927,70 @@ QMap<U2DataId, QStringList> SQLiteFeatureDbi::getAnnotationTablesByFeatureKey(co
     }
 
     return result;
+}
+
+U2DataId SQLiteFeatureDbi::getFeatureTableId(const U2DataId& featureId, U2OpStatus& os) {
+    U2DataId result;
+
+    DBI_TYPE_CHECK(featureId, U2Type::Feature, os, result);
+
+//    select object from AnnotationTable where rootId IN (select root from Feature where id = 5)
+    static const QString rootQueryStr = "(SELECT root FROM Feature WHERE id = ?1)";
+
+    SQLiteReadQuery q(QString("SELECT object FROM AnnotationTable WHERE rootId IN %1").arg(rootQueryStr), db, os);
+//    SQLiteReadQuery q("SELECT rootId, name FROM AnnotationTable, Object WHERE object = ?1 AND id = ?1", db, os);
+    q.bindDataId(1, featureId);
+    if (q.step()) {
+        result = q.getDataId(0, U2Type::AnnotationTable);
+        q.ensureDone();
+    } else if (!os.hasError()) {
+        os.setError(U2DbiL10n::tr("Annotation table object not found."));
+    }
+    return result;
+}
+
+void SQLiteFeatureDbi::undoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os) {
+    // unpack and update
+    U2DataId featureId;
+    U2FeatureLocation oldLoc;
+    U2FeatureLocation newLoc;
+    bool ok = U2DbiPackUtils::unpackFeatureLocation(modDetails, featureId, oldLoc, newLoc);
+    if (!ok) {
+        os.setError("An error occurred during reverting replacing feature location!");
+        return;
+    }
+
+    updateLocation(featureId, oldLoc, os);
+}
+
+void SQLiteFeatureDbi::undoUpdateFeatureName(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os) {
+
+}
+
+void SQLiteFeatureDbi::undoUpdateFeatureKey(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os) {
+
+}
+
+void SQLiteFeatureDbi::redoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os) {
+    // unpack and update
+    U2DataId featureId;
+    U2FeatureLocation oldLoc;
+    U2FeatureLocation newLoc;
+    bool ok = U2DbiPackUtils::unpackFeatureLocation(modDetails, featureId, oldLoc, newLoc);
+    if (!ok) {
+        os.setError("An error occurred during reverting replacing feature location!");
+        return;
+    }
+
+    updateLocation(featureId, newLoc, os);
+}
+
+void SQLiteFeatureDbi::redoUpdateFeatureName(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os) {
+
+}
+
+void SQLiteFeatureDbi::redoUpdateFeatureKey(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os) {
+
 }
 
 } //namespace

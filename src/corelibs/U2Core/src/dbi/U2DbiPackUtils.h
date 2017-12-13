@@ -27,6 +27,7 @@
 namespace U2 {
 
 class DNAChromatogram;
+class U2FeatureLocation;
 class U2Region;
 
 class U2CORE_EXPORT U2DbiPackUtils {
@@ -118,7 +119,12 @@ public:
     static QByteArray packUdr(const QByteArray& oldData, const QByteArray& newData);
     static bool unpackUdr(const QByteArray& modDetails, QByteArray& oldData, QByteArray& newData);
 
+    static QByteArray packFeatureLocation(const U2DataId& featureId, const U2FeatureLocation& oldLocation, const U2FeatureLocation& newLocation);
+    static bool unpackFeatureLocation(const QByteArray& modDetails, U2DataId& featureId, U2FeatureLocation& oldLocation, U2FeatureLocation& newLocation);
+
 private:
+    static bool parseFeatureLocation(const QByteArray &modDetails, U2FeatureLocation& location);
+
     static const char SEP;
     static const char SECOND_SEP;
 };

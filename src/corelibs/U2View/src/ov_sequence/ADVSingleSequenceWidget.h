@@ -45,19 +45,20 @@
 
 namespace U2 {
 
-class AnnotatedDNAView;
-class U2SequenceObject;
-class GSequenceLineView;
-class DetView;
-class PanView;
-class Overview;
-class GSingleSeqBlockState;
-class DNATranslation;
 class ADVSequenceObjectContext;
 class ADVSingleSequenceHeaderWidget;
+class AnnotatedDNAView;
 class Annotation;
 class AnnotationSelection;
+class AnnotationUndoRedoFramework;
+class DetView;
 class DNAAlphabet;
+class DNATranslation;
+class GSequenceLineView;
+class GSingleSeqBlockState;
+class Overview;
+class PanView;
+class U2SequenceObject;
 
 class U2VIEW_EXPORT ADVSingleSequenceWidget : public ADVSequenceWidget {
     Q_OBJECT
@@ -141,6 +142,8 @@ signals:
 protected slots:
     void sl_onViewDestroyed(QObject*);
 
+    void sl_reloadAnnTable();
+
     void sl_toggleView();
     void sl_togglePanView();
     void sl_toggleDetView();
@@ -193,6 +196,7 @@ private:
     ADVSingleSequenceHeaderWidget*  headerWidget;
 
     SequenceUndoRedoFramework*      undoFWK;
+    AnnotationUndoRedoFramework*    annsUndoFWK;
 
     QAction*        toggleViewAction;
     QAction*        togglePanViewAction;

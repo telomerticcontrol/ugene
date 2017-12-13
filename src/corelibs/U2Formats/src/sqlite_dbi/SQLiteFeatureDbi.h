@@ -144,6 +144,13 @@ public:
      * Requires: U2DbiFeature_WriteFeature feature support
      */
     void                            removeFeaturesByRoot(const U2DataId &rootId, U2OpStatus &os, SubfeatureSelectionMode mode);
+
+    /** Undo the operation for the feature. */
+    void undo(const U2DataId& annTableId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os);
+
+    /** Redo the operation for the feature. */
+    void redo(const U2DataId& annTableId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os);
+
     /**
      * Returns features that matched the query. Returns NULL if error occurs
      */
@@ -164,6 +171,18 @@ public:
 private:
     QSharedPointer<SQLiteQuery>     createFeatureQuery(const QString &selectPart, const FeatureQuery &fq, bool useOrder, U2OpStatus &os,
                                         SQLiteTransaction *trans = NULL);
+
+    U2DataId getFeatureTableId(const U2DataId& featureId, U2OpStatus& os);
+
+    // Undo methods
+    void undoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os);
+    void undoUpdateFeatureName(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
+    void undoUpdateFeatureKey(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
+
+    // Redo methods
+    void redoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os);
+    void redoUpdateFeatureName(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
+    void redoUpdateFeatureKey(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
 };
 
 } //namespace

@@ -639,7 +639,9 @@ void SQLiteObjectDbi::undo(const U2DataId& objId, U2OpStatus& os) {
 
         foreach (U2SingleModStep modStep, multiStepSingleSteps) {
             // Call an appropriate "undo" depending on the object type
-            if (U2ModType::isUdrModType(modStep.modType)) {
+            if (U2ModType::isFeatureModType(modStep.modType)) { // TODO_SVEDIT: do it for MySQL classes
+                dbi->getSQLiteFeatureDbi()->undo(modStep.objectId, modStep.modType, modStep.details, os);
+            } else if (U2ModType::isUdrModType(modStep.modType)) {
                 dbi->getSQLiteUdrDbi()->undo(modStep, os);
             } else if (U2ModType::isMsaModType(modStep.modType)) {
                 dbi->getSQLiteMsaDbi()->undo(modStep.objectId, modStep.modType, modStep.details, os);
@@ -1118,7 +1120,9 @@ U2TrackModType SQLiteModificationAction::prepare(U2OpStatus& os) {
 void SQLiteModificationAction::addModification(const U2DataId& objId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
     objIds.insert(objId);
 
+    coreLog.info("Add modification!");
     if (TrackOnUpdate == trackMod) {
+        coreLog.info("mod is fine!");
         SAFE_POINT(!modDetails.isEmpty(), "Empty modification details!", );
 
         qint64 objVersion = dbi->getObjectDbi()->getObjectVersion(objId, os);

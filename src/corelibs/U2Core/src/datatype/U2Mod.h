@@ -41,6 +41,12 @@ public:
     /** Sequence modification types*/
     static const qint64 sequenceUpdatedData;
 
+    /** Feature modification types*/
+    static const qint64 featureLocationUpdated;
+    static const qint64 featureTypeUpdated; // TODO_SVEDIT: is it possible??
+    static const qint64 featureNameUpdated;
+    static const qint64 featureKeyUpdated;
+
     /** MSA modification types */
     static const qint64 msaUpdatedAlphabet;
     static const qint64 msaAddedRows;
@@ -57,6 +63,7 @@ public:
 
     static bool isObjectModType(qint64 modType) { return modType > 0 && modType < 999; }
     static bool isSequenceModType(qint64 modType) { return modType >= 1000 && modType < 1100; }
+    static bool isFeatureModType(qint64 modType) { return modType >= 2000 && modType < 2100; }
     static bool isMsaModType(qint64 modType) { return modType >= 3000 && modType < 3100; }
     static bool isUdrModType(qint64 modType) { return modType >= 4000 && modType < 4100; }
 };

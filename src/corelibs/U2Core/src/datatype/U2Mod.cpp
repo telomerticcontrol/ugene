@@ -32,6 +32,11 @@ const qint64 U2ModType::objUpdatedName        = 1;
 
 const qint64 U2ModType::sequenceUpdatedData   = 1001;
 
+const qint64 U2ModType::featureLocationUpdated = 2001;
+const qint64 U2ModType::featureTypeUpdated     = 2002;
+const qint64 U2ModType::featureNameUpdated     = 2003;
+const qint64 U2ModType::featureKeyUpdated      = 2004;
+
 const qint64 U2ModType::msaUpdatedAlphabet    = 3001;
 const qint64 U2ModType::msaAddedRows          = 3002;
 const qint64 U2ModType::msaAddedRow           = 3003;
