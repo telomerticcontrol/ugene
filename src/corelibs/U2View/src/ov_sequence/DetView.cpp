@@ -125,6 +125,9 @@ DetView::DetView(QWidget* p, SequenceObjectContext* ctx)
 
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
 }
+DetView::~DetView() {
+    removeEventFilter(editor);
+}
 
 DetViewRenderArea* DetView::getDetViewRenderArea() const {
     return static_cast<DetViewRenderArea*>(renderArea);

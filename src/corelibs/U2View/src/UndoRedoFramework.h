@@ -68,7 +68,7 @@ protected:
 class SequenceUndoRedoFramework : public UndoRedoFramework {
     Q_OBJECT
 public:
-    SequenceUndoRedoFramework(QObject *p, U2SequenceObject* seqObj);
+    SequenceUndoRedoFramework(QObject *p, U2SequenceObject* seqObj, AnnotationTableObject* annTableObj = NULL);
 
 signals:
     void si_updateRequired();
@@ -79,6 +79,8 @@ private slots:
 private:
     U2SequenceObject* getSequenceObject();
     void updateObject(MaModificationType type);
+
+    AnnotationTableObject* annTableObject;
 };
 
 class AnnotationUndoRedoFramework : public UndoRedoFramework {

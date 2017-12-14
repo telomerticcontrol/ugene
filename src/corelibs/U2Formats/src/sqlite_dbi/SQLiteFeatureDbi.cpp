@@ -633,12 +633,17 @@ void SQLiteFeatureDbi::updateLocation(const U2DataId& featureId, const U2Feature
     Q_UNUSED(t);
 
     U2DataId tableId = getFeatureTableId(featureId, os);
-    coreLog.info(tableId);
     SAFE_POINT_OP(os, );
     U2Feature f = dbi->getFeatureDbi()->getFeature(featureId, os);
     SAFE_POINT_OP(os, );
 
-    SQLiteModificationAction updateAction(dbi, tableId); // here should be ann.table object id!!!
+    // TODO_SVEDIT: use ObjectRelation dbi!!
+    // and make the code look nice!
+    // find connected sequence and et seq id as master id!!!
+    U2DataId masterId = getRelatedSequenceObjectId(tableId, os); // if unabled -- use anntable id or ignore at all
+    SAFE_POINT_OP(os, );
+
+    SQLiteModificationAction updateAction(dbi, masterId);
     updateAction.prepare(os);
     coreLog.info("Action prepared");
     SAFE_POINT_OP(os, );
@@ -938,10 +943,27 @@ U2DataId SQLiteFeatureDbi::getFeatureTableId(const U2DataId& featureId, U2OpStat
     static const QString rootQueryStr = "(SELECT root FROM Feature WHERE id = ?1)";
 
     SQLiteReadQuery q(QString("SELECT object FROM AnnotationTable WHERE rootId IN %1").arg(rootQueryStr), db, os);
-//    SQLiteReadQuery q("SELECT rootId, name FROM AnnotationTable, Object WHERE object = ?1 AND id = ?1", db, os);
     q.bindDataId(1, featureId);
     if (q.step()) {
         result = q.getDataId(0, U2Type::AnnotationTable);
+        q.ensureDone();
+    } else if (!os.hasError()) {
+        os.setError(U2DbiL10n::tr("Annotation table object not found."));
+    }
+    return result;
+}
+
+// TODO_SVEDIT: check role and rename the method, also change messaged
+U2DataId SQLiteFeatureDbi::getRelatedSequenceObjectId(const U2DataId& annTableObjId, U2OpStatus& os) {
+    U2DataId result;
+
+    DBI_TYPE_CHECK(annTableObjId, U2Type::AnnotationTable, os, result); // TODO_SVEDIT: not necessary?
+
+    // TODO_SVEDIT: also check relation type
+    SQLiteReadQuery q(QString("SELECT reference FROM ObjectRelation WHERE object = ?1 and role = 1"), db, os);
+    q.bindDataId(1, annTableObjId);
+    if (q.step()) {
+        result = q.getDataId(0, U2Type::Sequence);
         q.ensureDone();
     } else if (!os.hasError()) {
         os.setError(U2DbiL10n::tr("Annotation table object not found."));

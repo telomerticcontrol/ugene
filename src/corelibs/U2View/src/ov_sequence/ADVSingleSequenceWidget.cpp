@@ -71,9 +71,11 @@ ADVSingleSequenceWidget::ADVSingleSequenceWidget(ADVSequenceObjectContext* seqCt
       overview(NULL)
 {
     seqContexts.append(seqCtx);
-    undoFWK = new SequenceUndoRedoFramework(this, seqCtx->getSequenceObject());
+    undoFWK = NULL;
     QList<AnnotationTableObject*> annTableList = ctx->getAnnotationObjects();
+    // TODO_SVEDIT: make it right
     if (annTableList.size() == 1) {
+        undoFWK = new SequenceUndoRedoFramework(this, seqCtx->getSequenceObject(), annTableList.first());
         // TODO_SVEDIT: tmp for anns undo-redo testing
         annsUndoFWK = new AnnotationUndoRedoFramework(this, annTableList.first());
         connect(annTableList.first(), SIGNAL(si_update()), SLOT(sl_reloadAnnTable()));

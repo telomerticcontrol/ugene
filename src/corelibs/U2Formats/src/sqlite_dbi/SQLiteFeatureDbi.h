@@ -173,6 +173,8 @@ private:
                                         SQLiteTransaction *trans = NULL);
 
     U2DataId getFeatureTableId(const U2DataId& featureId, U2OpStatus& os);
+    // TODO_SVEDIT: ObjectRelation dbi should be used
+    U2DataId getRelatedSequenceObjectId(const U2DataId& annTableObjId, U2OpStatus& os);
 
     // Undo methods
     void undoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os);

@@ -40,23 +40,40 @@
 #include <U2Core/ProjectModel.h>
 #include <U2Core/SaveDocumentTask.h>
 #include <U2Core/U1AnnotationUtils.h>
+#include <U2Core/U2Mod.h>
 #include <U2Core/U2ObjectDbi.h>
 #include <U2Core/U2OpStatusUtils.h>
 #include <U2Core/U2SafePoints.h>
 #include <U2Core/U2SequenceUtils.h>
+#include <U2Core/U2AlphabetUtils.h>
 
 #include "ModifySequenceObjectTask.h"
 
 namespace U2 {
 
 ModifySequenceContentTask::ModifySequenceContentTask(const DocumentFormatId &dfId, U2SequenceObject *seqObj, const U2Region &regionTodelete,
-    const DNASequence &seq2Insert, bool recalculateQualifiers, U1AnnotationUtils::AnnotationStrategyForResize str, const GUrl &url, bool mergeAnnotations)
-    : Task(tr("Modify sequence task"), TaskFlags(TaskFlag_NoRun) | TaskFlag_ReportingIsSupported), resultFormatId(dfId),
-    mergeAnnotations(mergeAnnotations), recalculateQualifiers(recalculateQualifiers), curDoc(seqObj->getDocument()), newDoc(NULL), url(url), strat(str),
-    seqObj(seqObj), regionToReplace(regionTodelete), sequence2Insert(seq2Insert)
+                                                     const DNASequence &seq2Insert, bool recalculateQualifiers, U1AnnotationUtils::AnnotationStrategyForResize str,
+                                                     const GUrl &url, bool mergeAnnotations)
+    : Task(tr("Modify sequence task"), TaskFlags(TaskFlag_NoRun) | TaskFlag_ReportingIsSupported),
+      resultFormatId(dfId),
+      mergeAnnotations(mergeAnnotations),
+      recalculateQualifiers(recalculateQualifiers),
+      curDoc(seqObj->getDocument()),
+      newDoc(NULL),
+      url(url),
+      strat(str),
+      seqObj(seqObj),
+      regionToReplace(regionTodelete),
+      sequence2Insert(seq2Insert)
 {
     GCOUNTER(cvar, tvar, "Modify sequence task");
     inplaceMod = url == curDoc->getURL() || url.isEmpty();
+
+    userModStep = new U2UseCommonUserModStep(seqObj->getEntityRef(), stateInfo);
+}
+
+ModifySequenceContentTask::~ModifySequenceContentTask() {
+    delete userModStep;
 }
 
 Task::ReportResult ModifySequenceContentTask::report() {
@@ -84,10 +101,14 @@ Task::ReportResult ModifySequenceContentTask::report() {
     if (!inplaceMod) {
         cloneSequenceAndAnnotations();
     }
+
     seqObj->replaceRegion(regionToReplace, sequence2Insert, stateInfo);
     CHECK_OP(stateInfo, ReportResult_Finished);
 
     fixAnnotations();
+
+    delete userModStep;
+    userModStep = NULL;
 
     if (!inplaceMod) {
         QList<Task*> tasks;
@@ -212,6 +233,7 @@ QMap<QString, QList<SharedAnnotationData> > ModifySequenceContentTask::fixAnnota
     AnnotationTableObject *ato = an->getGObject();
     SAFE_POINT(NULL != ato, L10N::nullPointerError("Annotation table object"), result);
 
+    // TODO_SVEDIT: pass master id to qualifiers change?
     QList<QVector<U2Region> > newRegions = U1AnnotationUtils::fixLocationsForReplacedRegion(regionToReplace,
         sequence2Insert.seq.length(), an->getRegions(), strat);
 

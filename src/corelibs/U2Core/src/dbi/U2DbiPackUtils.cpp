@@ -688,7 +688,7 @@ const char THIRD_SEP = '*';
 
 QByteArray U2DbiPackUtils::packFeatureLocation(const U2DataId& featureId, const U2FeatureLocation &oldLocation, const U2FeatureLocation &newLocation) {
     QByteArray result;
-    result += featureId;
+    result += featureId.toHex();
     result += SEP;
     result += QByteArray::number(oldLocation.strand.getDirectionValue());
     result += THIRD_SEP;
@@ -707,38 +707,30 @@ QByteArray U2DbiPackUtils::packFeatureLocation(const U2DataId& featureId, const 
 
 bool U2DbiPackUtils::unpackFeatureLocation(const QByteArray &modDetails, U2DataId& featureId, U2FeatureLocation &oldLocation, U2FeatureLocation &newLocation) {
     QList<QByteArray> tokens = modDetails.split(SEP);
-    SAFE_POINT(tokens.count() == 3, QString("Invalid modDetails, wrong tokens count: %1. Expected - 2.").arg(tokens.size()), false);
+    SAFE_POINT(tokens.count() == 3, QString("Invalid modDetails, wrong tokens count: %1. Expected - 3.").arg(tokens.size()), false);
 
-    featureId = tokens[0];
+    featureId = QByteArray::fromHex(tokens[0]);
 
-    coreLog.info("Number of locations is correct");
     bool ok = parseFeatureLocation(tokens[1], oldLocation);
     CHECK(ok, false);
-    coreLog.info("Parsed first location");
 
     ok = parseFeatureLocation(tokens[2], newLocation);
     CHECK(ok, false);
-    coreLog.info("Parsed second location");
 
     return true;
 }
 
 bool U2DbiPackUtils::parseFeatureLocation(const QByteArray &modDetails, U2FeatureLocation& location) {
     QList<QByteArray> tokens = modDetails.split(THIRD_SEP);
-    SAFE_POINT(tokens.count() == 3, QString("Invalid modDetails, wrong tokens count: %1. Expected - 2.").arg(tokens.size()), false);
+    SAFE_POINT(tokens.count() == 3, QString("Invalid modDetails, wrong tokens count: %1. Expected - 3.").arg(tokens.size()), false);
 
-    coreLog.info("Number of items in location pack is correct");
     bool ok = false;
-    coreLog.info(QString(tokens[0]));
     location.strand = U2Strand((U2Strand::Direction)tokens[0].toInt(&ok)); // TODO_SVEDIT: cast error
     CHECK(ok, false);
-    coreLog.info("Strand is cast right");
     qint64 start = tokens[1].toLongLong(&ok);
     CHECK(ok, false);
-    coreLog.info("Start pos is ok");
     qint64 len = tokens[2].toLongLong(&ok);
     CHECK(ok, false);
-    coreLog.info("Len is fine");
     location.region = U2Region(start, len);
 
     return true;

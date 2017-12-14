@@ -137,7 +137,9 @@ bool DetViewSequenceEditor::eventFilter(QObject *, QEvent *event) {
             break;
         default:
             if (key >= Qt::Key_A && key <= Qt::Key_Z) {
-                insertChar(key);
+                if (keyEvent->modifiers() == Qt::NoModifier) {
+                    insertChar(key);
+                }
             }
         }
     }
@@ -261,10 +263,6 @@ void DetViewSequenceEditor::deleteChar(int key) {
 }
 
 void DetViewSequenceEditor::runModifySeqTask(U2SequenceObject* seqObj, const U2Region &region, const DNASequence &sequence) {
-    U2OpStatusImpl os;
-    U2UseCommonUserModStep userModStep(seqObj->getEntityRef(), os);
-    Q_UNUSED(userModStep);
-
     Settings* s = AppContext::getSettings();
     U1AnnotationUtils::AnnotationStrategyForResize strategy =
             s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_ANNOTATION_STRATEGY,

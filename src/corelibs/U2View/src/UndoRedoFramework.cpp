@@ -138,8 +138,10 @@ void UndoRedoFramework::sl_redo() {
     updateObject(MaModificationType_Redo);
 }
 
-SequenceUndoRedoFramework::SequenceUndoRedoFramework(QObject *p, U2SequenceObject *seqObj)
-    : UndoRedoFramework(p, seqObj) {
+SequenceUndoRedoFramework::SequenceUndoRedoFramework(QObject *p, U2SequenceObject *seqObj, AnnotationTableObject* annTableObj)
+    : UndoRedoFramework(p, seqObj),
+      annTableObject(annTableObj)
+{
     connect(seqObj, SIGNAL(si_sequenceChanged()), SLOT(sl_sequenceChanged()));
 
     // TODO_SVEDIT: seq object should notify about changes
@@ -155,9 +157,12 @@ U2SequenceObject* SequenceUndoRedoFramework::getSequenceObject() {
     return dynamic_cast<U2SequenceObject*>(obj);
 }
 
-void SequenceUndoRedoFramework::updateObject(MaModificationType type) {
+void SequenceUndoRedoFramework::updateObject(MaModificationType /*type*/) {// TODO_SVEDIT: why type is not in use?
     U2SequenceObject* seq = getSequenceObject();
     seq->sl_resetDataCaches();
+    if (annTableObject != NULL) {
+        annTableObject->emit_update();
+    }
     emit si_updateRequired();
 }
 

@@ -30,6 +30,7 @@
 namespace U2 {
 
 class Document;
+class U2UseCommonUserModStep;
 
 class U2CORE_EXPORT ModifySequenceContentTask : public Task {
     Q_OBJECT
@@ -37,6 +38,7 @@ public:
     ModifySequenceContentTask(const DocumentFormatId &dfId, U2SequenceObject *seqObj, const U2Region &regionToReplace, const DNASequence &sequence2Insert,
         bool recalculateQualifiers = false, U1AnnotationUtils::AnnotationStrategyForResize _str = U1AnnotationUtils::AnnotationStrategyForResize_Resize,
         const GUrl &url = GUrl(), bool mergeAnnotations = false);
+    ~ModifySequenceContentTask();
 
     Task::ReportResult report();
     QString generateReport() const;
@@ -64,6 +66,8 @@ private:
     U2Region                                                regionToReplace;
     DNASequence                                             sequence2Insert;
     QMap<Annotation *, QList<QPair<QString, QString> > >    annotationForReport;
+
+    U2UseCommonUserModStep* userModStep;
 };
 
 }//ns
