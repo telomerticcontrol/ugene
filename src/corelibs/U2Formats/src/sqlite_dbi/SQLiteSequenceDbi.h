@@ -75,10 +75,10 @@ public:
     virtual void initSqlSchema(U2OpStatus& os);
 
     /** Undo the operation for the sequence. */
-    void undo(const U2DataId& msaId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os);
+    QString undo(const U2DataId& msaId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os);
 
     /** Redo the operation for the sequence. */
-    void redo(const U2DataId& msaId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os);
+    QString redo(const U2DataId& msaId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os);
 
 private:
     ///////////////////////////////////////////////////////////
@@ -87,11 +87,11 @@ private:
 
     ///////////////////////////////////////////////////////////
     // Undo methods
-    void undoUpdateSequenceData(const U2DataId& sequenceId, const QByteArray& modDetails, U2OpStatus& os);
+    U2Region undoUpdateSequenceData(const U2DataId& sequenceId, const QByteArray& modDetails, U2OpStatus& os);
 
     ///////////////////////////////////////////////////////////
     // Redo methods
-    void redoUpdateSequenceData(const U2DataId& sequenceId, const QByteArray& modDetails, U2OpStatus& os);
+    U2Region redoUpdateSequenceData(const U2DataId& sequenceId, const QByteArray& modDetails, U2OpStatus& os);
 };
 
 

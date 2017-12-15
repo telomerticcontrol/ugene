@@ -222,10 +222,10 @@ public:
     virtual QList<U2DataId> getAllObjectsInUse(U2OpStatus &os);
 
      /** Undo the last update operation for the object. */
-    virtual void undo(const U2DataId& objId, U2OpStatus& os) = 0;
+    virtual QHash<QString, QString> undo(const U2DataId& objId, U2OpStatus& os) = 0;
 
     /** Redo the last update operation for the object. */
-    virtual void redo(const U2DataId& objId, U2OpStatus& os) = 0;
+    virtual QHash<QString, QString> redo(const U2DataId& objId, U2OpStatus& os) = 0;
 
     /** Returns "true" if there are modifications of the object that can be undone */
     virtual bool canUndo(const U2DataId& objId, U2OpStatus& os) = 0;

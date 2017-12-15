@@ -105,6 +105,7 @@ DetView::DetView(QWidget* p, SequenceObjectContext* ctx)
     }
     if (hasAmino) {
         setupTranslationsMenu();
+        setupGeneticCodeMenu();
     }
     addActionToLocalToolbar(editAction);
 
@@ -625,6 +626,15 @@ void DetView::setupTranslationsMenu() {
     QToolButton *button = addActionToLocalToolbar(translationsMenu->menuAction());
     button->setPopupMode(QToolButton::InstantPopup);
     button->setObjectName("translationsMenuToolbarButton");
+}
+
+void DetView::setupGeneticCodeMenu() {
+    QMenu *ttMenu = ctx->createGeneticCodeMenu();
+    CHECK(NULL != ttMenu, );
+    QToolButton *button = addActionToLocalToolbar(ttMenu->menuAction());
+    SAFE_POINT(button, QString("ToolButton for %1 is NULL").arg(ttMenu->menuAction()->objectName()), );
+    button->setPopupMode(QToolButton::InstantPopup);
+    button->setObjectName("AminoToolbarButton");
 }
 
 /************************************************************************/

@@ -111,10 +111,10 @@ void UndoRedoFramework::sl_undo() {
     U2ObjectDbi* objDbi = con.dbi->getObjectDbi();
     SAFE_POINT(NULL != objDbi, "NULL Object Dbi!", );
 
-    objDbi->undo(entityRef.entityId, os);
+    QHash<QString, QString> meta = objDbi->undo(entityRef.entityId, os);
     SAFE_POINT_OP(os, );
 
-    updateObject(MaModificationType_Undo);
+    updateObject(meta, MaModificationType_Undo);
 }
 
 void UndoRedoFramework::sl_redo() {
@@ -132,15 +132,15 @@ void UndoRedoFramework::sl_redo() {
     U2ObjectDbi* objDbi = con.dbi->getObjectDbi();
     SAFE_POINT(NULL != objDbi, "NULL Object Dbi!", );
 
-    objDbi->redo(entityRef.entityId, os);
+    QHash<QString, QString> meta = objDbi->redo(entityRef.entityId, os);
     SAFE_POINT_OP(os, );
 
-    updateObject(MaModificationType_Redo);
+    updateObject(meta, MaModificationType_Redo);
 }
 
-SequenceUndoRedoFramework::SequenceUndoRedoFramework(QObject *p, U2SequenceObject *seqObj, AnnotationTableObject* annTableObj)
+SequenceUndoRedoFramework::SequenceUndoRedoFramework(QObject *p, U2SequenceObject *seqObj, QList<AnnotationTableObject*> annTableList)
     : UndoRedoFramework(p, seqObj),
-      annTableObject(annTableObj)
+      annTableList(annTableList)
 {
     connect(seqObj, SIGNAL(si_sequenceChanged()), SLOT(sl_sequenceChanged()));
 
@@ -153,17 +153,30 @@ void SequenceUndoRedoFramework::sl_sequenceChanged() {
     checkUndoRedoEnabled();
 }
 
+void SequenceUndoRedoFramework::sl_annTableAdded(AnnotationTableObject* table) {
+    annTableList.append(table);
+}
+
+void SequenceUndoRedoFramework::sl_annTableRemoved(AnnotationTableObject* table) {
+    annTableList.removeAll(table);
+}
+
 U2SequenceObject* SequenceUndoRedoFramework::getSequenceObject() {
     return dynamic_cast<U2SequenceObject*>(obj);
 }
 
-void SequenceUndoRedoFramework::updateObject(MaModificationType /*type*/) {// TODO_SVEDIT: why type is not in use?
+void SequenceUndoRedoFramework::updateObject(QHash<QString, QString> & metaInfo, MaModificationType /*type*/) {// TODO_SVEDIT: why type is not in use?
     U2SequenceObject* seq = getSequenceObject();
     seq->sl_resetDataCaches();
-    if (annTableObject != NULL) {
-        annTableObject->emit_update();
+    foreach (AnnotationTableObject* table, annTableList) {
+        table->emit_update();
     }
     emit si_updateRequired();
+
+    if (metaInfo.contains("sequence_region")) {
+        U2Region region = U2Region::fromString(metaInfo.value("sequence_region"));
+        emit si_affectedRegion(region);
+    }
 }
 
 AnnotationUndoRedoFramework::AnnotationUndoRedoFramework(QObject *p, AnnotationTableObject *annTableObj)
@@ -183,7 +196,7 @@ AnnotationTableObject* AnnotationUndoRedoFramework::getAnnotationTableObject() {
     return dynamic_cast<AnnotationTableObject*>(obj);
 }
 
-void AnnotationUndoRedoFramework::updateObject(MaModificationType /*type*/) {
+void AnnotationUndoRedoFramework::updateObject(QHash<QString, QString> & , MaModificationType /*type*/) {
     // TODO_SVEDIT: use type??
     AnnotationTableObject* tableObj = getAnnotationTableObject();
     tableObj->emit_update();
@@ -200,7 +213,7 @@ void MsaUndoRedoFramework::sl_alignmentChanged() {
     checkUndoRedoEnabled();
 }
 
-void MsaUndoRedoFramework::updateObject(MaModificationType type) {
+void MsaUndoRedoFramework::updateObject(QHash<QString, QString> & , MaModificationType type) {
     MaModificationInfo modInfo;
     modInfo.type = type;
     getMaObject()->updateCachedMultipleAlignment(modInfo);

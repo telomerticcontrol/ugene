@@ -112,6 +112,7 @@ protected:
 
 private:
     void setupTranslationsMenu();
+    void setupGeneticCodeMenu();
 };
 
 class DetViewRenderArea : public GSequenceLineViewAnnotatedRenderArea {

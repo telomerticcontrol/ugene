@@ -30,12 +30,12 @@
 #include <QTimer>
 
 #include <U2Core/Log.h> // TODO_SVEDIT: remove later
+#include <U2Core/U2Region.h>
 
 namespace U2 {
 
 class DetView;
 class DNASequence;
-class U2Region;
 class U2SequenceObject;
 
 class DetViewSequenceEditor : public QObject {
@@ -63,6 +63,8 @@ public:
 
 public slots:
     void sl_editMode(bool active);
+    // TODO_SVEDIT: find good names
+    void sl_region(U2Region r);
 
 private slots:
     void sl_changeCursorColor();

@@ -127,6 +127,8 @@ public:
 
     ///////////////////////// Class functions /////////////////////////////////
 
+    static U2Region fromString(const QString& region, Format format = FormatBrackets);
+
     /** Returns least common region which contains both of the 2 specified regions. */
     static U2Region containingRegion(const U2Region& r1, const U2Region& r2);
 

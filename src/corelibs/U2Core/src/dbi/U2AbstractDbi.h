@@ -201,12 +201,14 @@ public:
         U2DbiUtils::logNotSupported(U2DbiFeature_WriteModifications, getRootDbi(), os);
     }
 
-    virtual void undo(const U2DataId&, U2OpStatus& os) {
+    virtual QHash<QString, QString> undo(const U2DataId&, U2OpStatus& os) {
         U2DbiUtils::logNotSupported(U2DbiFeature_UndoRedo, getRootDbi(), os);
+        return QHash<QString, QString>();
     }
 
-    virtual void redo(const U2DataId&, U2OpStatus& os) {
+    virtual QHash<QString, QString> redo(const U2DataId&, U2OpStatus& os) {
         U2DbiUtils::logNotSupported(U2DbiFeature_UndoRedo, getRootDbi(), os);
+        return QHash<QString, QString>();
     }
 
     virtual bool canUndo(const U2DataId& /*msaId*/, U2OpStatus& os) {

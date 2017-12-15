@@ -56,6 +56,7 @@
 #include "image_export/SingleSequenceImageExportController.h"
 #include "ov_sequence/codon_table/CodonTable.h"
 #include "AnnotationsTreeView.h"
+#include "DetViewSequenceEditor.h"
 
 namespace U2 {
 
@@ -73,12 +74,16 @@ ADVSingleSequenceWidget::ADVSingleSequenceWidget(ADVSequenceObjectContext* seqCt
     seqContexts.append(seqCtx);
     undoFWK = NULL;
     QList<AnnotationTableObject*> annTableList = ctx->getAnnotationObjects();
+    undoFWK = new SequenceUndoRedoFramework(this, seqCtx->getSequenceObject(), annTableList);
+
+    connect(seqCtx, SIGNAL(si_annotationObjectAdded(AnnotationTableObject*)), undoFWK, SLOT(sl_annTableAdded(AnnotationTableObject*)));
+    connect(seqCtx, SIGNAL(si_annotationObjectRemoved(AnnotationTableObject*)), undoFWK, SLOT(sl_annTableRemoved(AnnotationTableObject*)));
+
     // TODO_SVEDIT: make it right
     if (annTableList.size() == 1) {
-        undoFWK = new SequenceUndoRedoFramework(this, seqCtx->getSequenceObject(), annTableList.first());
         // TODO_SVEDIT: tmp for anns undo-redo testing
         annsUndoFWK = new AnnotationUndoRedoFramework(this, annTableList.first());
-        connect(annTableList.first(), SIGNAL(si_update()), SLOT(sl_reloadAnnTable()));
+        connect(annTableList.first(), SIGNAL(si_update()), SLOT(sl_reloadAnnTable())); // TODO_SVEDIT: this should be saved
     } else {
         annsUndoFWK  = NULL;
     }
@@ -207,14 +212,10 @@ void ADVSingleSequenceWidget::init() {
     addButtonWithActionToToolbar(selectRangeAction1, hStandardBar);
     buttonTabOrederedNames->append(selectRangeAction1->objectName());
 
-    if (seqCtx->getAminoTT() != NULL) {
-        setupGeneticCodeMenu(seqCtx);
-    } else {
-        ttButton = NULL;
-    }
     detView->addActionToLocalToolbar(undoFWK->getUndoAction());
     detView->addActionToLocalToolbar(undoFWK->getRedoAction());
     connect(undoFWK, SIGNAL(si_updateRequired()), detView, SLOT(sl_sequenceChanged()));
+    connect(undoFWK, SIGNAL(si_affectedRegion(U2Region)), detView->getEditor(), SLOT(sl_region(U2Region)));
 
     QAction* shotScreenAction = new QAction(QIcon(":/core/images/cam2.png"), tr("Export image"), this);
     shotScreenAction->setObjectName("export_image");
@@ -266,10 +267,6 @@ void ADVSingleSequenceWidget::init() {
 
 
 ADVSingleSequenceWidget::~ADVSingleSequenceWidget() {
-    foreach(QMenu* m, tbMenues) {
-        delete m;
-    }
-
     delete buttonTabOrederedNames;
 }
 
@@ -352,9 +349,6 @@ void ADVSingleSequenceWidget::setPanViewCollapsed(bool v) {
 }
 
 void ADVSingleSequenceWidget::setDetViewCollapsed(bool v) {
-    if (ttButton != NULL) {
-        getSequenceContext()->setTranslationsVisible(!v);
-    }
     detView->setHidden(v);
     detView->setDisabledDetViewActions(v);
     toggleDetViewAction->setChecked(!v);
@@ -578,16 +572,6 @@ void ADVSingleSequenceWidget::addRulersMenu(QMenu& m) {
     QAction* aBefore = GUIUtils::findActionAfter(m.actions(), ADV_MENU_SECTION2_SEP);
     m.insertMenu(aBefore, rulersM);
     m.insertSeparator(aBefore)->setObjectName("SECOND_SEP");
-}
-
-void ADVSingleSequenceWidget::setupGeneticCodeMenu(ADVSequenceObjectContext *seqCtx) {
-    QMenu *ttMenu = seqCtx->createGeneticCodeMenu();
-    CHECK(NULL != ttMenu, );
-    tbMenues.append(ttMenu);
-    QToolButton *button = detView->addActionToLocalToolbar(ttMenu->menuAction());
-    SAFE_POINT(button, QString("ToolButton for %1 is NULL").arg(ttMenu->menuAction()->objectName()), );
-    button->setPopupMode(QToolButton::InstantPopup);
-    button->setObjectName("AminoToolbarButton");
 }
 
 bool ADVSingleSequenceWidget::isWidgetOnlyObject(GObject* o) const {

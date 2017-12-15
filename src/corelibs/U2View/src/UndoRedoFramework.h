@@ -50,7 +50,7 @@ private slots:
     void sl_redo();
 
 protected:
-    virtual void updateObject(MaModificationType type) = 0;
+    virtual void updateObject(QHash<QString, QString> & metaInfo, MaModificationType type) = 0;
 
 protected:
     void checkUndoRedoEnabled();
@@ -68,19 +68,23 @@ protected:
 class SequenceUndoRedoFramework : public UndoRedoFramework {
     Q_OBJECT
 public:
-    SequenceUndoRedoFramework(QObject *p, U2SequenceObject* seqObj, AnnotationTableObject* annTableObj = NULL);
+    SequenceUndoRedoFramework(QObject *p, U2SequenceObject* seqObj, QList<AnnotationTableObject*> annTableList);
 
 signals:
     void si_updateRequired();
+    void si_affectedRegion(U2Region r);
 
 private slots:
     void sl_sequenceChanged();
 
+    void sl_annTableAdded(AnnotationTableObject* table);
+    void sl_annTableRemoved(AnnotationTableObject* table);
+
 private:
     U2SequenceObject* getSequenceObject();
-    void updateObject(MaModificationType type);
+    void updateObject(QHash<QString, QString> & metaInfo, MaModificationType type);
 
-    AnnotationTableObject* annTableObject;
+    QList<AnnotationTableObject*> annTableList;
 };
 
 class AnnotationUndoRedoFramework : public UndoRedoFramework {
@@ -90,7 +94,7 @@ public:
 
 private:
     AnnotationTableObject* getAnnotationTableObject();
-    void updateObject(MaModificationType type);
+    void updateObject(QHash<QString, QString> & metaInfo, MaModificationType type);
 };
 
 class MsaUndoRedoFramework : public UndoRedoFramework {
@@ -99,7 +103,7 @@ public:
     MsaUndoRedoFramework(QObject *p, MultipleAlignmentObject* maObj);
 
 private:
-    void updateObject(MaModificationType type);
+    void updateObject(QHash<QString, QString> & metaInfo, MaModificationType type);
 
     MultipleAlignmentObject* getMaObject() const;
 private slots:

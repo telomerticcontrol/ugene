@@ -586,7 +586,8 @@ void MysqlObjectDbi::updateObjectAccessTime(const U2DataId &objectId, U2OpStatus
 //////////////////////////////////////////////////////////////////////////
 // Undo/redo methods
 
-void MysqlObjectDbi::undo(const U2DataId& objId, U2OpStatus& os) {
+QHash<QString, QString> MysqlObjectDbi::undo(const U2DataId& objId, U2OpStatus& os) {
+    QHash<QString, QString> metaInfo;
     MysqlTransaction t(db, os);
     Q_UNUSED(t);
 
@@ -598,14 +599,14 @@ void MysqlObjectDbi::undo(const U2DataId& objId, U2OpStatus& os) {
     if (os.hasError()) {
         coreLog.trace("Error getting an object: " + os.getError());
         os.setError(errorDescr);
-        return;
+        return metaInfo;
     }
 
     // Verify that modifications tracking is enabled for the object
     if (TrackOnUpdate != obj.trackModType) {
         coreLog.trace("Called 'undo' for an object without modifications tracking enabled");
         os.setError(errorDescr);
-        return;
+        return metaInfo;
     }
 
     // Get all single modifications steps
@@ -613,14 +614,14 @@ void MysqlObjectDbi::undo(const U2DataId& objId, U2OpStatus& os) {
     if (os.hasError()) {
         coreLog.trace("Error getting the nearest userModStep version: " + os.getError());
         os.setError(errorDescr);
-        return;
+        return metaInfo;
     }
 
     QList< QList<U2SingleModStep> > modSteps = dbi->getMysqlModDbi()->getModSteps(objId, userModStepVersion, os);
     if (os.hasError()) {
         coreLog.trace("Error getting modSteps for an object: " + os.getError());
         os.setError(errorDescr);
-        return;
+        return metaInfo;
     }
 
     QList< QList<U2SingleModStep> >::const_iterator multiIt = modSteps.end();
@@ -630,13 +631,13 @@ void MysqlObjectDbi::undo(const U2DataId& objId, U2OpStatus& os) {
 
         foreach (const U2SingleModStep& modStep, multiStepSingleSteps) {
             undoSingleModStep(modStep, os);
-            CHECK_OP(os, );
+            CHECK_OP(os, metaInfo);
 
             setVersion(modStep.objectId, modStep.version, os);
             if (os.hasError()) {
                 coreLog.trace("Failed to set an object version: " + os.getError());
                 os.setError(errorDescr);
-                return;
+                return metaInfo;
             }
         }
     }
@@ -645,11 +646,12 @@ void MysqlObjectDbi::undo(const U2DataId& objId, U2OpStatus& os) {
     if (os.hasError()) {
         coreLog.trace("Failed to set an object version: " + os.getError());
         os.setError(errorDescr);
-        return;
+        return metaInfo;
     }
 }
 
-void MysqlObjectDbi::redo(const U2DataId& objId, U2OpStatus& os) {
+QHash<QString, QString> MysqlObjectDbi::redo(const U2DataId& objId, U2OpStatus& os) {
+    QHash<QString, QString> metaInfo;
     MysqlTransaction t(db, os);
     Q_UNUSED(t);
 
@@ -661,14 +663,14 @@ void MysqlObjectDbi::redo(const U2DataId& objId, U2OpStatus& os) {
     if (os.hasError()) {
         coreLog.trace("Error getting an object: " + os.getError());
         os.setError(errorDescr);
-        return;
+        return metaInfo;
     }
 
     // Verify that modifications tracking is enabled for the object
     if (TrackOnUpdate != obj.trackModType) {
         coreLog.trace("Called 'redo' for an object without modifications tracking enabled");
         os.setError(errorDescr);
-        return;
+        return metaInfo;
     }
 
     // Get all single modification steps
@@ -676,7 +678,7 @@ void MysqlObjectDbi::redo(const U2DataId& objId, U2OpStatus& os) {
     if (os.hasError()) {
         coreLog.trace("Error getting modSteps for an object: " + os.getError());
         os.setError(errorDescr);
-        return;
+        return metaInfo;
     }
 
     foreach (const QList<U2SingleModStep>& multiStepSingleSteps, modSteps) {
@@ -684,7 +686,7 @@ void MysqlObjectDbi::redo(const U2DataId& objId, U2OpStatus& os) {
 
         foreach (const U2SingleModStep& modStep, multiStepSingleSteps) {
             redoSingleModStep(modStep, os);
-            CHECK_OP(os, );
+            CHECK_OP(os, metaInfo);
             objectIds.insert(modStep.objectId);
         }
         objectIds.insert(objId);
@@ -694,7 +696,7 @@ void MysqlObjectDbi::redo(const U2DataId& objId, U2OpStatus& os) {
             if (os.hasError()) {
                 coreLog.trace("Can't increment an object version");
                 os.setError(errorDescr);
-                return;
+                return metaInfo;
             }
         }
     }

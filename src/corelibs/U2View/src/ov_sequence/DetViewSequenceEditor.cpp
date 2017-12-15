@@ -27,6 +27,7 @@
 #include <QMessageBox>
 
 #include <U2Core/AppContext.h>
+#include <U2Core/DNAAlphabet.h>
 #include <U2Core/DNASequenceObject.h>
 #include <U2Core/DNASequenceSelection.h>
 #include <U2Core/DocumentModel.h>
@@ -203,6 +204,8 @@ void DetViewSequenceEditor::navigate(int newPos, bool shiftPressed) {
 void DetViewSequenceEditor::insertChar(int character) {
     U2SequenceObject* seqObj = view->getSequenceObject();
     SAFE_POINT(seqObj != NULL, "SeqObject is NULL", );
+    CHECK(seqObj->getAlphabet()->contains(character), ); // TODO_SVEDIT: support alphabet changing
+
     const DNASequence seq(QByteArray(1, character));
     U2Region r;
     SequenceObjectContext* ctx = view->getSequenceContext();
@@ -296,6 +299,10 @@ void DetViewSequenceEditor::sl_editMode(bool active) {
         animationTimer.stop();
         view->update();
     }
+}
+
+void DetViewSequenceEditor::sl_region(U2Region r) {
+    setCursor(r.endPos()); // TODO_SVEDIT: try to make the whole region visible here!
 }
 
 void DetViewSequenceEditor::sl_changeCursorColor() {

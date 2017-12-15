@@ -167,10 +167,10 @@ public:
     // Undo/redo methods
 
     /** Undo the last update operation for the object. */
-    virtual void undo(const U2DataId& objId, U2OpStatus& os);
+    virtual QHash<QString, QString> undo(const U2DataId& objId, U2OpStatus& os);
 
     /** Redo the last update operation for the object. */
-    virtual void redo(const U2DataId& objId, U2OpStatus& os);
+    virtual QHash<QString, QString> redo(const U2DataId& objId, U2OpStatus& os);
 
     /** Returns "true", if there are steps to undo/redo modifications of the object*/
     virtual bool canUndo(const U2DataId& objId, U2OpStatus& os);

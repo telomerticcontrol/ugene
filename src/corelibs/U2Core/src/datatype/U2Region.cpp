@@ -25,6 +25,7 @@
 #include <U2Core/FormatUtils.h>
 
 #include "U2Region.h"
+#include <QStringList>
 
 namespace U2 {
 
@@ -45,6 +46,58 @@ QString U2Region::toString(Format format) const {
     default:
         return QString("[%1, %2)").arg(start, end);
     }
+}
+
+const QString ERROR_MESSAGE = "Cannot parse region, int cast fail";
+U2Region U2Region::fromString(const QString& region, Format format) {
+    qint64 start;
+    qint64 length;
+    QStringList list;
+    bool ok;
+    switch(format) {
+    case FormatDash: // "%1 - %2"
+        list = region.split(" - ");
+        SAFE_POINT(list.size() == 2, QString("Wrong format. Expected 2, got %1 ").arg(list.size()), U2Region());
+        start = ((QString)list.first()).replace(" ", "").toInt(&ok);
+        SAFE_POINT(ok, ERROR_MESSAGE, U2Region());
+        length = ((QString)list.last()).replace(" ", "").toInt(&ok) - start;
+        SAFE_POINT(ok, ERROR_MESSAGE, U2Region());
+        break;
+    case FormatPlusMinus: // "%1 &plusmn; %2"
+        list = region.split(" &plusmn; ");
+        SAFE_POINT(list.size() == 2, QString("Wrong format. Expected 2, got %1 ").arg(list.size()), U2Region());
+    {
+        int first = ((QString)list.first()).replace(" ", "").toInt(&ok);
+        SAFE_POINT(ok, ERROR_MESSAGE, U2Region());
+        int last = ((QString)list.last()).replace(" ", "").toInt(&ok);
+        SAFE_POINT(ok, ERROR_MESSAGE, U2Region());
+        start = first - last;
+        length = last * 2;
+    }
+        break;
+    case FormatDots: // "%1..%2"
+        list = region.split("..");
+        SAFE_POINT(list.size() == 2, QString("Wrong format. Expected 2, got %1 ").arg(list.size()), U2Region());
+        start = ((QString)list.first()).replace(" ", "").toInt(&ok);
+        SAFE_POINT(ok, ERROR_MESSAGE, U2Region());
+        length = ((QString)list.last()).replace(" ", "").toInt(&ok) - start + 1;
+        SAFE_POINT(ok, ERROR_MESSAGE, U2Region());
+        break;
+    case FormatBrackets: // "[%1, %2)"
+    {
+        int commaIndex = region.indexOf(',');
+        SAFE_POINT(commaIndex != -1, "Wrong format, comma is expected", U2Region());
+        start = region.mid(1, commaIndex - 1).replace(" ", "").toInt(&ok);
+        SAFE_POINT(ok, ERROR_MESSAGE, U2Region());
+        length = region.mid(commaIndex + 1, region.length() - commaIndex - 2).replace(" ", "").toInt(&ok) - start;
+        SAFE_POINT(ok, ERROR_MESSAGE, U2Region());
+    }
+        break;
+    default:
+        FAIL("Unknown U2Region format", U2Region());
+    }
+
+    return U2Region(start, length);
 }
 
 QVector<U2Region> U2Region::circularContainingRegion(QVector<U2Region> &_regions, int seqLen) {

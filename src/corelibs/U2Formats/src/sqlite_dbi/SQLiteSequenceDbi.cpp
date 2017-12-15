@@ -222,23 +222,25 @@ void SQLiteSequenceDbi::updateSequenceData(SQLiteModificationAction& updateActio
     SAFE_POINT_OP(os, );
 }
 
-void SQLiteSequenceDbi::undo(const U2DataId& seqId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
+QString SQLiteSequenceDbi::undo(const U2DataId& seqId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
     if (U2ModType::sequenceUpdatedData == modType) {
-        undoUpdateSequenceData(seqId, modDetails, os);
+        U2Region r = undoUpdateSequenceData(seqId, modDetails, os);
+        return r.toString();
     }
     else {
         os.setError(QString("Unexpected modification type '%1'!").arg(QString::number(modType)));
-        return;
+        return QString();
     }
 }
 
-void SQLiteSequenceDbi::redo(const U2DataId& seqId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
+QString SQLiteSequenceDbi::redo(const U2DataId& seqId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
     if (U2ModType::sequenceUpdatedData == modType) {
-        redoUpdateSequenceData(seqId, modDetails, os);
+        U2Region r = redoUpdateSequenceData(seqId, modDetails, os);
+        return r.toString();
     }
     else {
         os.setError(QString("Unexpected modification type '%1'!").arg(QString::number(modType)));
-        return;
+        return QString();
     }
 }
 
@@ -369,7 +371,7 @@ void SQLiteSequenceDbi::updateSequenceDataCore(const U2DataId& sequenceId, const
 /************************************************************************/
 /* Undo/redo methods */
 /************************************************************************/
-void SQLiteSequenceDbi::undoUpdateSequenceData(const U2DataId& sequenceId, const QByteArray& modDetails, U2OpStatus& os) {
+U2Region SQLiteSequenceDbi::undoUpdateSequenceData(const U2DataId& sequenceId, const QByteArray& modDetails, U2OpStatus& os) {
     U2Region replacedRegion;
     U2Region replacedByRegion;
     QByteArray oldData;
@@ -378,16 +380,17 @@ void SQLiteSequenceDbi::undoUpdateSequenceData(const U2DataId& sequenceId, const
     bool ok = U2DbiPackUtils::unpackSequenceDataDetails(modDetails, replacedRegion, oldData, newData, hints);
     if (!ok) {
         os.setError("An error occurred during reverting replacing sequence data!");
-        return;
+        return U2Region();
     }
     hints.remove(U2SequenceDbiHints::EMPTY_SEQUENCE);
 
     replacedByRegion = U2Region(replacedRegion.startPos, newData.length());
 
     updateSequenceDataCore(sequenceId, replacedByRegion, oldData, hints, os);
+    return U2Region(replacedByRegion.startPos, oldData.length());
 }
 
-void SQLiteSequenceDbi::redoUpdateSequenceData(const U2DataId& sequenceId, const QByteArray& modDetails, U2OpStatus& os) {
+U2Region SQLiteSequenceDbi::redoUpdateSequenceData(const U2DataId& sequenceId, const QByteArray& modDetails, U2OpStatus& os) {
     U2Region replacedRegion;
     U2Region replacedByRegion;
     QByteArray oldData;
@@ -396,11 +399,12 @@ void SQLiteSequenceDbi::redoUpdateSequenceData(const U2DataId& sequenceId, const
     bool ok = U2DbiPackUtils::unpackSequenceDataDetails(modDetails, replacedRegion, oldData, newData, hints);
     if (!ok) {
         os.setError("An error occurred during replacing sequence data!");
-        return;
+        return U2Region();
     }
 
     replacedByRegion = U2Region(replacedRegion.startPos, newData.length());
 
     updateSequenceDataCore(sequenceId, replacedRegion, newData, hints, os);
+    return replacedByRegion;
 }
 } //namespace
