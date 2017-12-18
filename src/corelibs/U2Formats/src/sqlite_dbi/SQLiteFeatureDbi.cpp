@@ -20,6 +20,7 @@
  */
 
 #include <U2Core/U2DbiPackUtils.h>
+#include <U2Core/U2ObjectTypeUtils.h>
 #include <U2Core/U2SqlHelpers.h>
 #include <U2Core/U2SafePoints.h>
 
@@ -121,8 +122,6 @@ private:
 void SQLiteFeatureDbi::createAnnotationTableObject(U2AnnotationTable &table, const QString &folder, U2OpStatus &os) {
     dbi->getSQLiteObjectDbi()->createObject(table, folder, U2DbiObjectRank_TopLevel, os);
     CHECK_OP(os,);
-    // TODO_SVEDIT: test
-    dbi->getSQLiteObjectDbi()->setTrackModType(table.id, TrackOnUpdate, os);
 
     static const QString queryString("INSERT INTO AnnotationTable (object, rootId) VALUES(?1, ?2)");
     SQLiteWriteQuery q(queryString, db, os);
@@ -512,6 +511,8 @@ void addFeatureKeys(const QList<U2FeatureKey> &keys, const U2DataId &featureId, 
 void SQLiteFeatureDbi::createFeature(U2Feature& feature, const QList<U2FeatureKey>& keys, U2OpStatus& os) {
     SQLiteTransaction t(db, os);
 
+    coreLog.info("CREATE FEATURE");
+
     static const QString queryStringf("INSERT INTO Feature(class, type, parent, root, name, sequence, strand, start, len, nameHash) "
                                                    "VALUES(?1,    ?2,   ?3,     ?4,   ?5,   ?6,       ?7,     ?8,    ?9,   ?10)");
     QSharedPointer<SQLiteQuery> qf = t.getPreparedQuery(queryStringf, db, os);
@@ -540,6 +541,55 @@ void SQLiteFeatureDbi::createFeature(U2Feature& feature, const QList<U2FeatureKe
     CHECK_OP(os, );
 
     addFeatureKeys(keys, feature.id, db, os);
+
+    coreLog.info(QString("Root id: %1").arg(QString(feature.rootFeatureId.toInt())));
+    U2DataId masterId = getMasterIdByRoot(feature.rootFeatureId, os);
+    coreLog.info(QString("Master id empty?: %1").arg(masterId.isEmpty()));
+    SQLiteModificationAction updateAction(dbi, masterId);
+    coreLog.info("feature name id is " + feature.name);
+
+    if (!masterId.isEmpty()) {
+        updateAction.prepare(os);
+        coreLog.info("Successful preparation!");
+        bool track = TrackOnUpdate == updateAction.getTrackModType();
+        coreLog.info(QString("Tracking: %1").arg(track));
+
+//        updateAction.addModification(masterId, U2ModType::relatedFeatureUpdated, " ", os);
+
+        if (track) {
+            QByteArray modDetails = U2DbiPackUtils::packOneFeature(feature, keys);
+            U2DataId tableId = getFeatureTableIdByRoot(feature.rootFeatureId, os);
+            SAFE_POINT_OP(os, );
+            updateAction.addModification(tableId, U2ModType::featureAdded, modDetails, os);
+            SAFE_POINT_OP(os, );
+            coreLog.info(QString("Added feature! %1").arg(QString(modDetails)));
+            updateAction.complete(os);
+        }
+    }
+
+//    // TODO_SVEDIT: return back later
+////    if (!masterId.isEmpty() && TrackOnUpdate == updateAction.getTrackModType()) {
+//    if (!feature.rootFeatureId.isEmpty() && !masterId.isEmpty() && TrackOnUpdate == updateAction.getTrackModType()) {
+//        QByteArray modDetails = U2DbiPackUtils::packFeature(feature, keys);
+//        U2DataId tableId = getFeatureTableIdByRoot(feature.rootFeatureId, os);
+//        CHECK(!tableId.isEmpty(), );
+////        SAFE_POINT_OP(os, );
+//        updateAction.addModification(tableId, U2ModType::featureAdded, modDetails, os);
+//        SAFE_POINT_OP(os, );
+//        coreLog.info(QString("Added feature! %1").arg(QString(modDetails)));
+//        updateAction.complete(os);
+//        SAFE_POINT_OP(os, );
+//    }
+
+//    U2DataId tableId1 = getFeatureTableId(feature.rootFeatureId, os);
+//    coreLog.info(QString("Is table id empty? %1").arg(tableId1.isEmpty()));
+//    U2DataId tableId2 = getFeatureTableId(feature.parentFeatureId, os);
+//    coreLog.info(QString("Is table id empty for parent feature? %1").arg(tableId2.isEmpty()));
+
+//    if (!masterId.isEmpty() && TrackOnUpdate == updateAction.getTrackModType()) {
+//        updateAction.complete(os);
+//        SAFE_POINT_OP(os, );
+//    }
 }
 
 void SQLiteFeatureDbi::addKey(const U2DataId& featureId, const U2FeatureKey& key, U2OpStatus& os) {
@@ -632,18 +682,8 @@ void SQLiteFeatureDbi::updateLocation(const U2DataId& featureId, const U2Feature
     SQLiteTransaction t(db, os);
     Q_UNUSED(t);
 
-    U2DataId tableId = getFeatureTableId(featureId, os);
-    SAFE_POINT_OP(os, );
-    U2Feature f = dbi->getFeatureDbi()->getFeature(featureId, os);
-    SAFE_POINT_OP(os, );
-
-    // TODO_SVEDIT: use ObjectRelation dbi!!
-    // and make the code look nice!
-    // find connected sequence and et seq id as master id!!!
-    U2DataId masterId = getRelatedSequenceObjectId(tableId, os); // if unabled -- use anntable id or ignore at all
-    SAFE_POINT_OP(os, );
-
-    SQLiteModificationAction updateAction(dbi, masterId);
+    coreLog.info("UPDATE LOCATION");
+    SQLiteModificationAction updateAction(dbi, getMasterId(featureId, os));
     updateAction.prepare(os);
     coreLog.info("Action prepared");
     SAFE_POINT_OP(os, );
@@ -651,12 +691,11 @@ void SQLiteFeatureDbi::updateLocation(const U2DataId& featureId, const U2Feature
     QByteArray modDetails;
     // TODO_SVEDIT: return back later
 //    if (TrackOnUpdate == updateAction.getTrackModType()) {
+        U2Feature f = dbi->getFeatureDbi()->getFeature(featureId, os);
+        SAFE_POINT_OP(os, );
         U2FeatureLocation oldLocation = f.location;
-                //dbi->getSequenceDbi()->getSequenceData(sequenceId, regionToReplace, os);
         SAFE_POINT_OP(os, );
         modDetails = U2DbiPackUtils::packFeatureLocation(featureId, oldLocation, location);
-        coreLog.info(modDetails);
-//        modDetails = U2DbiPackUtils::packSequenceDataDetails(regionToReplace, oldSeq, dataToInsert, hints);
 //    }
 
 
@@ -668,6 +707,8 @@ void SQLiteFeatureDbi::updateLocation(const U2DataId& featureId, const U2Feature
     qf.execute();
     CHECK_OP(os,);
 
+    U2DataId tableId = getFeatureTableId(featureId, os);
+    SAFE_POINT_OP(os, );
     updateAction.addModification(tableId, U2ModType::featureLocationUpdated, modDetails, os);
     SAFE_POINT_OP(os, );
 
@@ -700,12 +741,59 @@ void SQLiteFeatureDbi::removeFeature(const U2DataId& featureId, U2OpStatus& os) 
     qk.execute();
 }
 
+// TODO_SVEDIT: remove!
+void SQLiteFeatureDbi::removeFeature(const U2Feature& feature, U2OpStatus& os) {
+//    DBI_TYPE_CHECK(featureId, U2Type::Feature, os,);
+
+    SQLiteTransaction t(db, os);
+
+    coreLog.info("Removing the feature!");
+//    static const QString queryStringf("INSERT INTO Feature(class, type, parent, root, name, sequence, strand, start, len, nameHash) "
+//                                                   "VALUES(?1,    ?2,   ?3,     ?4,   ?5,   ?6,       ?7,     ?8,    ?9,   ?10)");
+    SQLiteWriteQuery qk("DELETE FROM Feature WHERE class = ?1 and type = ?2 and parent =?3 and root = ?4"
+                        " and name = ?5 and strand = ?6 and start = ?7 and len = ?8" , db, os);
+    qk.bindInt32(1, feature.featureClass);
+    qk.bindInt32(2, feature.featureType);
+    qk.bindDataId(3, feature.parentFeatureId);
+    qk.bindDataId(4, feature.rootFeatureId);
+    qk.bindString(5, feature.name);
+    qk.bindInt32(6, feature.location.strand.getDirectionValue());
+    qk.bindInt64(7, feature.location.region.startPos);
+    qk.bindInt64(8, feature.location.region.length);
+    // should the keyfeature be checked as well?
+
+//    qf->bindInt32(1, feature.featureClass);
+//    qf->bindInt32(2, feature.featureType);
+//    qf->bindDataId(3, feature.parentFeatureId);
+//    qf->bindDataId(4, feature.rootFeatureId);
+//    qf->bindString(5, feature.name);
+//    qf->bindDataId(6, feature.sequenceId);
+//    qf->bindInt32(7, feature.location.strand.getDirectionValue());
+//    qf->bindInt64(8, feature.location.region.startPos);
+//    qf->bindInt64(9, feature.location.region.length);
+//    qf->bindInt32(10, qHash(feature.name));
+    qk.execute();
+}
+
 void SQLiteFeatureDbi::removeFeaturesByParent(const U2DataId &parentId, U2OpStatus &os, SubfeatureSelectionMode mode) {
     DBI_TYPE_CHECK(parentId, U2Type::Feature, os,);
 
     const bool includeParent = SelectParentFeature == mode;
 
     SQLiteTransaction t(db, os);
+    // select all features and pack into modStep
+
+//    U2DataId masterId = getMasterIdByRoot(feature.rootFeatureId, os);
+//    SQLiteModificationAction updateAction(dbi, masterId);
+    //    coreLog.info("Root id is " + QString::number(feature.rootFeatureId.toInt()));
+    ////    coreLog.info("Feature id is " + QString::number(feature.featureId.toInt()));
+    //    coreLog.info("feature name id is " + feature.name);
+    //    if (!masterId.isEmpty() && TrackOnUpdate == updateAction.getTrackModType()) {
+    //        updateAction.prepare(os);
+    //        coreLog.info("Ann Table exist. Add mod step");
+    //    } else {
+    //        coreLog.info("MasterId is empty -- annotation table does not exist!");
+//    getFeaturesByParent(parentId)
 
     SQLiteWriteQuery qf("DELETE FROM Feature WHERE parent = ?1"
         + (includeParent ? QString(" OR id = ?2") : ""), db, os);
@@ -741,6 +829,28 @@ void SQLiteFeatureDbi::removeFeaturesByParents(const QList<U2DataId> &parentIds,
     SQLiteTransaction t(db, os);
     Q_UNUSED(t);
 
+    coreLog.info("Removing features by parents"); // but why?
+    // find master Id for the first one
+    U2DataId masterId = getMasterId(parentIds.first(), os); // should be from one but not necessary
+    SQLiteModificationAction updateAction(dbi, masterId);
+    //
+    updateAction.prepare(os);
+//    updateAction.addModification(masterId, U2ModType::relatedFeatureUpdated, " ", os);
+
+    foreach (U2DataId fId, parentIds) { // recursive
+        U2DataId tableId = getFeatureTableId(fId, os);
+        U2Feature f = getFeature(fId, os);
+
+        coreLog.info(QString("Preparing feature for removl %1").arg(f.name));
+        // clear the feature first
+
+        QList<U2FeatureKey> keys = getFeatureKeys(fId, os);
+        SAFE_POINT_OP(os, );
+        QByteArray modDetails = U2DbiPackUtils::packOneFeature(f, keys);
+        // table id
+        updateAction.addModification(tableId, U2ModType::featureRemoved, modDetails, os);
+    }
+
     int parentsNumber = parentIds.count();
     if (parentsNumber <= SQLiteDbi::BIND_PARAMETERS_LIMIT) {
         executeDeleteFeaturesByParentsQuery(parentIds, db, os);
@@ -753,6 +863,8 @@ void SQLiteFeatureDbi::removeFeaturesByParents(const QList<U2DataId> &parentIds,
             deletedFeaturesNumber += SQLiteDbi::BIND_PARAMETERS_LIMIT;
         }
     }
+
+   updateAction.complete(os);
 }
 
 void SQLiteFeatureDbi::removeFeaturesByRoot(const U2DataId &rootId, U2OpStatus &os, SubfeatureSelectionMode mode) {
@@ -779,7 +891,11 @@ void SQLiteFeatureDbi::removeFeaturesByRoot(const U2DataId &rootId, U2OpStatus &
 
 void SQLiteFeatureDbi::undo(const U2DataId& annTableId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
     // get the feature id first
-    if (U2ModType::featureLocationUpdated == modType) {
+    if (U2ModType::featureAdded == modType) {
+        undoAddFeature(modDetails, os);
+    } else if (U2ModType::featureRemoved == modType) {
+        undoRemoveFeature(modDetails, os);
+    } else if (U2ModType::featureLocationUpdated == modType) {
         undoUpdateFeatureLocation(modDetails, os);
     } else if (U2ModType::featureNameUpdated == modType) {
         undoUpdateFeatureName(annTableId, modDetails, os);
@@ -793,7 +909,11 @@ void SQLiteFeatureDbi::undo(const U2DataId& annTableId, qint64 modType, const QB
 }
 
 void SQLiteFeatureDbi::redo(const U2DataId& annTableId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
-    if (U2ModType::featureLocationUpdated == modType) {
+    if (U2ModType::featureAdded == modType) {
+        redoAddFeature(modDetails, os);
+    } else if (U2ModType::featureRemoved == modType) {
+        redoRemoveFeature(modDetails, os);
+    } else if (U2ModType::featureLocationUpdated == modType) {
         redoUpdateFeatureLocation(modDetails, os);
     } else if (U2ModType::featureNameUpdated == modType) {
         redoUpdateFeatureName(annTableId, modDetails, os);
@@ -934,6 +1054,41 @@ QMap<U2DataId, QStringList> SQLiteFeatureDbi::getAnnotationTablesByFeatureKey(co
     return result;
 }
 
+U2DataId SQLiteFeatureDbi::getMasterId(const U2DataId& featureId, U2OpStatus& os) {
+    U2DataId tableId = getFeatureTableId(featureId, os);
+    SAFE_POINT_OP(os, U2DataId());
+
+    QList<U2ObjectRelation> relations = dbi->getObjectRelationsDbi()->getObjectRelations(tableId, os);
+    SAFE_POINT_OP(os, U2DataId());
+
+    if (relations.size() == 1) {
+        U2ObjectRelation r = relations.first();
+        if (r.relationRole == ObjectRole_Sequence
+                && U2ObjectTypeUtils::toDataType( r.referencedType ) == U2Type::Sequence) {
+            return r.referencedObject;
+        }
+    }
+    return tableId;
+}
+
+U2DataId SQLiteFeatureDbi::getMasterIdByRoot(const U2DataId& rootId, U2OpStatus& os) {
+    U2DataId tableId = getFeatureTableIdByRoot(rootId, os);
+    CHECK(!tableId.isEmpty(), U2DataId());
+
+    QList<U2ObjectRelation> relations = dbi->getObjectRelationsDbi()->getObjectRelations(tableId, os);
+    SAFE_POINT_OP(os, U2DataId());
+
+    // TODO_SVEDIT: double code, refactor these 4 methods
+    if (relations.size() == 1) {
+        U2ObjectRelation r = relations.first();
+        if (r.relationRole == ObjectRole_Sequence
+                && U2ObjectTypeUtils::toDataType( r.referencedType ) == U2Type::Sequence) {
+            return r.referencedObject;
+        }
+    }
+    return tableId;
+}
+
 U2DataId SQLiteFeatureDbi::getFeatureTableId(const U2DataId& featureId, U2OpStatus& os) {
     U2DataId result;
 
@@ -947,40 +1102,60 @@ U2DataId SQLiteFeatureDbi::getFeatureTableId(const U2DataId& featureId, U2OpStat
     if (q.step()) {
         result = q.getDataId(0, U2Type::AnnotationTable);
         q.ensureDone();
+        coreLog.info("FOUND ann table!");
     } else if (!os.hasError()) {
-        os.setError(U2DbiL10n::tr("Annotation table object not found."));
+        coreLog.info("No ann table found!");
+//        os.setError(U2DbiL10n::tr("Annotation table object not found."));
+        return result;
     }
     return result;
 }
 
-// TODO_SVEDIT: check role and rename the method, also change messaged
-U2DataId SQLiteFeatureDbi::getRelatedSequenceObjectId(const U2DataId& annTableObjId, U2OpStatus& os) {
+U2DataId SQLiteFeatureDbi::getFeatureTableIdByRoot(const U2DataId& rootId, U2OpStatus& os) {
     U2DataId result;
 
-    DBI_TYPE_CHECK(annTableObjId, U2Type::AnnotationTable, os, result); // TODO_SVEDIT: not necessary?
+    DBI_TYPE_CHECK(rootId, U2Type::Feature, os, result);
 
-    // TODO_SVEDIT: also check relation type
-    SQLiteReadQuery q(QString("SELECT reference FROM ObjectRelation WHERE object = ?1 and role = 1"), db, os);
-    q.bindDataId(1, annTableObjId);
+//    select object from AnnotationTable where rootId IN (select root from Feature where id = 5)
+
+    SQLiteReadQuery q(QString("SELECT object FROM AnnotationTable WHERE rootId = ?1"), db, os);
+    q.bindDataId(1, rootId);
     if (q.step()) {
-        result = q.getDataId(0, U2Type::Sequence);
+        result = q.getDataId(0, U2Type::AnnotationTable);
         q.ensureDone();
+        coreLog.info("FOUND ann table!");
     } else if (!os.hasError()) {
-        os.setError(U2DbiL10n::tr("Annotation table object not found."));
+        coreLog.info("No ann table found!");
+//        os.setError(U2DbiL10n::tr("Annotation table object not found."));
+        return result;
     }
     return result;
+}
+
+void SQLiteFeatureDbi::undoAddFeature(const QByteArray& modDetails, U2OpStatus& os) {
+    U2Feature f;
+    QList<U2FeatureKey> keys;
+    bool ok = U2DbiPackUtils::unpackOneFeature(modDetails, f, keys);
+    CHECK_EXT(ok, os.setError("An error occurred during reverting feature adding!"), );
+
+    removeFeature(f.id, os);
+}
+
+void SQLiteFeatureDbi::undoRemoveFeature(const QByteArray& modDetails, U2OpStatus& os) {
+    U2Feature f;
+    QList<U2FeatureKey> keys;
+    bool ok = U2DbiPackUtils::unpackOneFeature(modDetails, f, keys);
+    CHECK_EXT(ok, os.setError("An error occurred during reverting feature adding!"), );
+
+    createFeature(f, keys, os); // here will be the new id!
 }
 
 void SQLiteFeatureDbi::undoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os) {
-    // unpack and update
     U2DataId featureId;
     U2FeatureLocation oldLoc;
     U2FeatureLocation newLoc;
     bool ok = U2DbiPackUtils::unpackFeatureLocation(modDetails, featureId, oldLoc, newLoc);
-    if (!ok) {
-        os.setError("An error occurred during reverting replacing feature location!");
-        return;
-    }
+    CHECK_EXT(ok, os.setError("An error occurred during reverting replacing feature location!"), );
 
     updateLocation(featureId, oldLoc, os);
 }
@@ -993,16 +1168,33 @@ void SQLiteFeatureDbi::undoUpdateFeatureKey(const U2DataId& featureId, const QBy
 
 }
 
+void SQLiteFeatureDbi::redoAddFeature(const QByteArray &modDetails, U2OpStatus &os) {
+    U2Feature f;
+    QList<U2FeatureKey> keys;
+    bool ok = U2DbiPackUtils::unpackOneFeature(modDetails, f, keys);
+    CHECK_EXT(ok, os.setError("An error occurred during reverting feature adding!"), );
+
+    createFeature(f, keys, os);
+}
+
+void SQLiteFeatureDbi::redoRemoveFeature(const QByteArray &modDetails, U2OpStatus &os) {
+    U2Feature f;
+    QList<U2FeatureKey> keys;
+    bool ok = U2DbiPackUtils::unpackOneFeature(modDetails, f, keys);
+    CHECK_EXT(ok, os.setError("An error occurred during reverting feature adding!"), );
+
+    coreLog.info("Redo removing annotations!");
+    // but the id is new
+    removeFeature(f, os); // check i the feature is is still valid
+//    createFeature(f, keys, os);
+}
+
 void SQLiteFeatureDbi::redoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os) {
-    // unpack and update
     U2DataId featureId;
     U2FeatureLocation oldLoc;
     U2FeatureLocation newLoc;
     bool ok = U2DbiPackUtils::unpackFeatureLocation(modDetails, featureId, oldLoc, newLoc);
-    if (!ok) {
-        os.setError("An error occurred during reverting replacing feature location!");
-        return;
-    }
+    CHECK_EXT(ok, os.setError("An error occurred during reverting replacing feature location!"), );
 
     updateLocation(featureId, newLoc, os);
 }
@@ -1013,6 +1205,63 @@ void SQLiteFeatureDbi::redoUpdateFeatureName(const U2DataId& featureId, const QB
 
 void SQLiteFeatureDbi::redoUpdateFeatureKey(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os) {
 
+}
+
+
+void SQLiteFeatureDbi::updateFeature(const U2DataId& featureId, const U2Feature& feature, U2OpStatus& os) {
+    DBI_TYPE_CHECK(featureId, U2Type::Feature, os,);
+
+    SQLiteTransaction t(db, os);
+    Q_UNUSED(t);
+
+    coreLog.info("UPDATE FEATURE");
+    SQLiteModificationAction updateAction(dbi, getMasterId(featureId, os));
+    updateAction.prepare(os);
+    coreLog.info("Action prepared");
+    SAFE_POINT_OP(os, );
+
+    QByteArray modDetails;
+    // TODO_SVEDIT: return back later
+//    if (TrackOnUpdate == updateAction.getTrackModType()) {
+//        U2Feature f = dbi->getFeatureDbi()->getFeature(featureId, os);
+//        SAFE_POINT_OP(os, );
+//        U2FeatureLocation oldLocation = f.location;
+//        SAFE_POINT_OP(os, );
+//        modDetails = U2DbiPackUtils::packFeatureLocation(featureId, oldLocation, location);
+//    }
+
+//        static const QString queryStringf("INSERT INTO Feature(class, type, parent, root, name, sequence, strand, start, len, nameHash) "
+//                                                       "VALUES(?1,    ?2,   ?3,     ?4,   ?5,   ?6,       ?7,     ?8,    ?9,   ?10)");
+
+
+    SQLiteWriteQuery qf("UPDATE Feature SET class = ?1, type = ?2, parent = ?3, root = ?4, name = ?5, sequence = ?6, strand = ?7, start = ?8, len = ?9, nameHash = ?10"
+                        "WHERE id = ?11" , db, os);
+    qf.bindInt32(1, feature.featureClass);
+    qf.bindInt32(2, feature.featureType);
+    qf.bindDataId(3, feature.parentFeatureId);
+    qf.bindDataId(4, feature.rootFeatureId);
+    qf.bindString(5, feature.name);
+    qf.bindDataId(6, feature.sequenceId);
+    qf.bindInt32(7, feature.location.strand.getDirectionValue());
+    qf.bindInt64(8, feature.location.region.startPos);
+    qf.bindInt64(8, feature.location.region.length);
+    qf.bindInt32(10, qHash(feature.name));
+    qf.execute();
+    CHECK_OP(os,);
+
+    U2DataId tableId = getFeatureTableId(featureId, os);
+    SAFE_POINT_OP(os, );
+    updateAction.addModification(tableId, U2ModType::featureFullyUpdated, modDetails, os);
+    SAFE_POINT_OP(os, );
+
+//    SQLiteWriteQuery qr("UPDATE FeatureLocationRTreeIndex SET start = ?1, end = ?2 WHERE id = ?3" , db, os);
+//    qr.bindInt64(1, location.region.startPos);
+//    qr.bindInt64(2, location.region.endPos());
+//    qr.bindDataId(3, featureId);
+//    qr.execute();
+
+    updateAction.complete(os);
+    SAFE_POINT_OP(os, );
 }
 
 } //namespace

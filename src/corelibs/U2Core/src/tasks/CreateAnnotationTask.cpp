@@ -33,8 +33,9 @@
 
 namespace U2 {
 
+// TODO_SVEDIT: slowing down annotations, create a new issue about main thread
 CreateAnnotationsTask::CreateAnnotationsTask(AnnotationTableObject *ao, const QList<SharedAnnotationData> &data,  const QString &g)
-    : Task(tr("Create annotations"), TaskFlags_FOSE_COSC), aobj(ao)
+    : Task(tr("Create annotations"), TaskFlags_FOSE_COSC | TaskFlag_RunInMainThread), aobj(ao)
 {
     aData.insert(g, data);
 
@@ -44,7 +45,7 @@ CreateAnnotationsTask::CreateAnnotationsTask(AnnotationTableObject *ao, const QL
 }
 
 CreateAnnotationsTask::CreateAnnotationsTask(const GObjectReference &r, const QList<SharedAnnotationData> &data, const QString &g)
-    : Task(tr("Create annotations"), TaskFlags_FOSE_COSC), aRef(r)
+    : Task(tr("Create annotations"), TaskFlags_FOSE_COSC | TaskFlag_RunInMainThread), aRef(r)
 {
     aData.insert(g, data);
 
@@ -56,7 +57,7 @@ CreateAnnotationsTask::CreateAnnotationsTask(const GObjectReference &r, const QL
 }
 
 CreateAnnotationsTask::CreateAnnotationsTask(AnnotationTableObject *o, const QMap<QString, QList<SharedAnnotationData> > &data)
-    : Task(tr("Create annotations"), TaskFlags_FOSE_COSC), aobj(o), aData(data)
+    : Task(tr("Create annotations"), TaskFlags_FOSE_COSC | TaskFlag_RunInMainThread), aobj(o), aData(data)
 {
     initAnnObjectRef();
     CHECK_OP(stateInfo, );

@@ -47,6 +47,10 @@ public:
                                 const QVariantMap &hintsMap = QVariantMap());
 
                             ~AnnotationTableObject();
+
+                            // TODO_SVEDIT: move this to GObject, doubled in MultipleAlignmentObject and seqObject
+                            void setTrackMod(U2OpStatus &os, U2TrackModType trackMod);
+
     /**
      * Converts all the features stored in DB to annotations and returns the result
      */

@@ -99,6 +99,7 @@ public:
      * Returning value specifies whether the key with name @key.name exists for a given feature.
      */
     bool                            getKeyValue(const U2DataId &featureId, U2FeatureKey &key, U2OpStatus &os);
+
     /**
      * Updates feature location. Features with U2Region(0,0) have no specified location
      * Requires: U2DbiFeature_WriteFeature feature support
@@ -129,6 +130,7 @@ public:
      * Requires: U2DbiFeature_WriteFeature feature support
      */
     void                            removeFeature(const U2DataId &featureId, U2OpStatus &os);
+    void                            removeFeature(const U2Feature &feature, U2OpStatus &os);
     /**
      * Removes subfeatures along with their parent feature from database
      * Requires: U2DbiFeature_WriteFeature feature support
@@ -172,19 +174,27 @@ private:
     QSharedPointer<SQLiteQuery>     createFeatureQuery(const QString &selectPart, const FeatureQuery &fq, bool useOrder, U2OpStatus &os,
                                         SQLiteTransaction *trans = NULL);
 
+    U2DataId getMasterId(const U2DataId& featureId, U2OpStatus& os);
+    U2DataId getMasterIdByRoot(const U2DataId& rootId, U2OpStatus& os);
     U2DataId getFeatureTableId(const U2DataId& featureId, U2OpStatus& os);
-    // TODO_SVEDIT: ObjectRelation dbi should be used
-    U2DataId getRelatedSequenceObjectId(const U2DataId& annTableObjId, U2OpStatus& os);
+    U2DataId getFeatureTableIdByRoot(const U2DataId& rootId, U2OpStatus& os);
 
     // Undo methods
+    void undoAddFeature(const QByteArray& modDetails, U2OpStatus& os);
+    void undoRemoveFeature(const QByteArray& modDetails, U2OpStatus& os);
     void undoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os);
     void undoUpdateFeatureName(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
     void undoUpdateFeatureKey(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
 
     // Redo methods
+    void redoAddFeature(const QByteArray& modDetails, U2OpStatus& os);
+    void redoRemoveFeature(const QByteArray& modDetails, U2OpStatus& os);
     void redoUpdateFeatureLocation(const QByteArray& modDetails, U2OpStatus& os);
     void redoUpdateFeatureName(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
     void redoUpdateFeatureKey(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
+
+    void updateFeature(const U2DataId& featureId, const U2Feature& feature, U2OpStatus &os);
+
 };
 
 } //namespace

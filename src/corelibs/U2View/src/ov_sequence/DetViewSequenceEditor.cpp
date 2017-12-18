@@ -58,6 +58,11 @@ DetViewSequenceEditor::DetViewSequenceEditor(DetView* _view)
     U2OpStatus2Log os;
     U2SequenceObject* obj = view->getSequenceObject();
     obj->setTrackMod(os, TrackOnUpdate);
+
+    QSet<AnnotationTableObject*> annTables = view->getSequenceContext()->getAnnotationObjects();
+    foreach (AnnotationTableObject* t, annTables) {
+        t->setTrackMod(os, TrackOnUpdate);
+    }
 }
 
 DetViewSequenceEditor::~DetViewSequenceEditor() {
@@ -267,9 +272,13 @@ void DetViewSequenceEditor::deleteChar(int key) {
 
 void DetViewSequenceEditor::runModifySeqTask(U2SequenceObject* seqObj, const U2Region &region, const DNASequence &sequence) {
     Settings* s = AppContext::getSettings();
+//    U1AnnotationUtils::AnnotationStrategyForResize strategy =
+//            s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_ANNOTATION_STRATEGY,
+//                        U1AnnotationUtils::AnnotationStrategyForResize_Resize).value<U1AnnotationUtils::AnnotationStrategyForResize>();
     U1AnnotationUtils::AnnotationStrategyForResize strategy =
-            s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_ANNOTATION_STRATEGY,
-                        U1AnnotationUtils::AnnotationStrategyForResize_Resize).value<U1AnnotationUtils::AnnotationStrategyForResize>();
+                (U1AnnotationUtils::AnnotationStrategyForResize)s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_ANNOTATION_STRATEGY,
+                            // return back resize after testing
+                            U1AnnotationUtils::AnnotationStrategyForResize_Remove).toInt();
     Task* t = new ModifySequenceContentTask(seqObj->getDocument()->getDocumentFormatId(), seqObj,
                                             region, sequence,
                                             s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_RECALC_QUALIFIERS, false).toBool(),

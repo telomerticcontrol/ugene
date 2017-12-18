@@ -720,7 +720,9 @@ QHash<QString, QString> SQLiteObjectDbi::redo(const U2DataId& objId, U2OpStatus&
         QSet<U2DataId> objectIds;
 
         foreach (U2SingleModStep modStep, multiStepSingleSteps) {
-            if (U2ModType::isUdrModType(modStep.modType)) {
+            if (U2ModType::isFeatureModType(modStep.modType)) { // TODO_SVEDIT: do it for MySQL classes
+                dbi->getSQLiteFeatureDbi()->redo(modStep.objectId, modStep.modType, modStep.details, os);
+            } else if (U2ModType::isUdrModType(modStep.modType)) {
                 dbi->getSQLiteUdrDbi()->redo(modStep, os);
             } else if (U2ModType::isMsaModType(modStep.modType)) {
                 dbi->getSQLiteMsaDbi()->redo(modStep.objectId, modStep.modType, modStep.details, os);

@@ -61,6 +61,18 @@ AnnotationTableObject::~AnnotationTableObject() {
     delete rootGroup;
 }
 
+void AnnotationTableObject::setTrackMod(U2OpStatus &os, U2TrackModType trackMod) {
+    // Prepare the connection
+    DbiConnection con(entityRef.dbiRef, os);
+    CHECK_OP(os, );
+
+    U2ObjectDbi *objectDbi = con.dbi->getObjectDbi();
+    SAFE_POINT(NULL != objectDbi, "NULL Object Dbi", );
+
+    // Set the new status
+    objectDbi->setTrackModType(entityRef.entityId, trackMod, os);
+}
+
 QList<Annotation *> AnnotationTableObject::getAnnotations() const {
     ensureDataLoaded();
     return rootGroup->getAnnotations(true);

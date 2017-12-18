@@ -143,6 +143,13 @@ SequenceUndoRedoFramework::SequenceUndoRedoFramework(QObject *p, U2SequenceObjec
       annTableList(annTableList)
 {
     connect(seqObj, SIGNAL(si_sequenceChanged()), SLOT(sl_sequenceChanged()));
+    foreach(AnnotationTableObject* annTableObj, annTableList) {
+        connect(annTableObj, SIGNAL(si_onAnnotationModified(AnnotationModification)), SLOT(sl_lockedStateChanged()));
+        connect(annTableObj, SIGNAL(si_modifiedStateChanged()), SLOT(sl_lockedStateChanged()));
+        connect(annTableObj, SIGNAL(si_nameChanged(QString)), SLOT(sl_lockedStateChanged()));
+        connect(annTableObj, SIGNAL(si_onAnnotationsRemoved(QList<Annotation*>)), SLOT(sl_lockedStateChanged()));
+        connect(annTableObj, SIGNAL(si_onAnnotationsAdded(QList<Annotation*>)), SLOT(sl_lockedStateChanged()));
+    }
 
     // TODO_SVEDIT: seq object should notify about changes
     connect(undoAction, SIGNAL(triggered(bool)), SLOT(sl_sequenceChanged()));

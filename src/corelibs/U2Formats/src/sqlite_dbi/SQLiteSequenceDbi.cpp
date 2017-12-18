@@ -227,7 +227,7 @@ QString SQLiteSequenceDbi::undo(const U2DataId& seqId, qint64 modType, const QBy
         U2Region r = undoUpdateSequenceData(seqId, modDetails, os);
         return r.toString();
     }
-    else {
+    else if (U2ModType::relatedFeatureUpdated != modType) {
         os.setError(QString("Unexpected modification type '%1'!").arg(QString::number(modType)));
         return QString();
     }
@@ -238,7 +238,7 @@ QString SQLiteSequenceDbi::redo(const U2DataId& seqId, qint64 modType, const QBy
         U2Region r = redoUpdateSequenceData(seqId, modDetails, os);
         return r.toString();
     }
-    else {
+    else if (U2ModType::relatedFeatureUpdated != modType) {
         os.setError(QString("Unexpected modification type '%1'!").arg(QString::number(modType)));
         return QString();
     }

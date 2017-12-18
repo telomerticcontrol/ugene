@@ -30,12 +30,16 @@ namespace U2 {
 
 const qint64 U2ModType::objUpdatedName        = 1;
 
-const qint64 U2ModType::sequenceUpdatedData   = 1001;
+const qint64 U2ModType::sequenceUpdatedData     = 1001;
+const qint64 U2ModType::relatedFeatureUpdated   = 1002;
 
-const qint64 U2ModType::featureLocationUpdated = 2001;
-const qint64 U2ModType::featureTypeUpdated     = 2002;
-const qint64 U2ModType::featureNameUpdated     = 2003;
-const qint64 U2ModType::featureKeyUpdated      = 2004;
+const qint64 U2ModType::featureAdded            = 2001;
+const qint64 U2ModType::featureRemoved          = 2002;
+const qint64 U2ModType::featureLocationUpdated  = 2003;
+const qint64 U2ModType::featureTypeUpdated      = 2004;
+const qint64 U2ModType::featureNameUpdated      = 2005;
+const qint64 U2ModType::featureKeyUpdated       = 2006;
+const qint64 U2ModType::featureFullyUpdated     = 2007;
 
 const qint64 U2ModType::msaUpdatedAlphabet    = 3001;
 const qint64 U2ModType::msaAddedRows          = 3002;

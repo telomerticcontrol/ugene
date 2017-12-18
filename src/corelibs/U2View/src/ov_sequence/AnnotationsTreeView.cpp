@@ -2243,6 +2243,8 @@ bool AVAnnotationItem::operator <(const QTreeWidgetItem &other) const {
         if (aData1->name == aData2->name) {
             // for annotations with equal names we compare locations
             // this allows to avoid resorting on lazy qualifier loading
+            // TODO_SVEDIT: TMP something causing the crash here - location is empty
+            CHECK(!aData1->location->regions.isEmpty() && !aData2->location->regions.isEmpty(), true);
             return aData1->location->regions[0] < aData2->location->regions[0];
         }
         return aData1->name < aData2->name;

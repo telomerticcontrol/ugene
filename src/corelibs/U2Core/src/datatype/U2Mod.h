@@ -40,12 +40,16 @@ public:
 
     /** Sequence modification types*/
     static const qint64 sequenceUpdatedData;
+    static const qint64 relatedFeatureUpdated; // TODO_SVEDIT: can be omitted
 
     /** Feature modification types*/
+    static const qint64 featureAdded;
+    static const qint64 featureRemoved;
     static const qint64 featureLocationUpdated;
     static const qint64 featureTypeUpdated; // TODO_SVEDIT: is it possible??
     static const qint64 featureNameUpdated;
     static const qint64 featureKeyUpdated;
+    static const qint64 featureFullyUpdated;
 
     /** MSA modification types */
     static const qint64 msaUpdatedAlphabet;
