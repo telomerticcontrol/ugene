@@ -39,6 +39,7 @@
 #include <U2Core/U2OpStatusUtils.h>
 #include <U2Core/U2SafePoints.h>
 
+#include <U2View/ADVSequenceObjectContext.h>
 #include <U2View/SequenceObjectContext.h>
 
 #include <U2View/ADVSequenceWidget.h>
@@ -163,7 +164,7 @@ void DetViewSequenceEditor::setCursor(int newPos) {
 
 void DetViewSequenceEditor::navigate(int newPos, bool shiftPressed) {
     CHECK(newPos != cursor, );
-    CHECK(newPos >= 0 && newPos <= view->getSequenceLength(), );
+    newPos = qBound(0, newPos, (int)view->getSequenceLength());
 
     DNASequenceSelection* selection = view->getSequenceContext()->getSequenceSelection();
     if (shiftPressed) {
@@ -209,7 +210,7 @@ void DetViewSequenceEditor::navigate(int newPos, bool shiftPressed) {
 void DetViewSequenceEditor::insertChar(int character) {
     U2SequenceObject* seqObj = view->getSequenceObject();
     SAFE_POINT(seqObj != NULL, "SeqObject is NULL", );
-    CHECK(seqObj->getAlphabet()->contains(character), ); // TODO_SVEDIT: support alphabet changing
+    CHECK(seqObj->getAlphabet()->contains(character), ); // TODO_SVEDIT: support alphabet changing, separate issue
 
     const DNASequence seq(QByteArray(1, character));
     U2Region r;
@@ -223,7 +224,7 @@ void DetViewSequenceEditor::insertChar(int character) {
     }
     runModifySeqTask(seqObj, r, seq);
 
-    navigate(cursor + 1, false);
+    navigate(r.startPos + 1, false);
 }
 
 // TODO_SVEDIT: rename
@@ -272,19 +273,17 @@ void DetViewSequenceEditor::deleteChar(int key) {
 
 void DetViewSequenceEditor::runModifySeqTask(U2SequenceObject* seqObj, const U2Region &region, const DNASequence &sequence) {
     Settings* s = AppContext::getSettings();
-//    U1AnnotationUtils::AnnotationStrategyForResize strategy =
-//            s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_ANNOTATION_STRATEGY,
-//                        U1AnnotationUtils::AnnotationStrategyForResize_Resize).value<U1AnnotationUtils::AnnotationStrategyForResize>();
     U1AnnotationUtils::AnnotationStrategyForResize strategy =
                 (U1AnnotationUtils::AnnotationStrategyForResize)s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_ANNOTATION_STRATEGY,
-                            // return back resize after testing
-                            U1AnnotationUtils::AnnotationStrategyForResize_Remove).toInt();
+                            U1AnnotationUtils::AnnotationStrategyForResize_Resize).toInt();
     Task* t = new ModifySequenceContentTask(seqObj->getDocument()->getDocumentFormatId(), seqObj,
                                             region, sequence,
                                             s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_RECALC_QUALIFIERS, false).toBool(),
                                             strategy, seqObj->getDocument()->getURL());
+    ADVSequenceObjectContext* ctx = qobject_cast<ADVSequenceObjectContext* >(view->getSequenceContext());
+    SAFE_POINT(NULL != ctx, "Failed to cast ADVSequenceObjectContext", );
+    connect(t, SIGNAL(si_stateChanged()), ctx->getAnnotatedDNAView(), SLOT(sl_sequenceModifyTaskStateChanged()));
 
-    SAFE_POINT(NULL != t, L10N::nullPointerError("Edit sequence task"), );
     AppContext::getTaskScheduler()->registerTopLevelTask(t);
 }
 

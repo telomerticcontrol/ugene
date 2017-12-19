@@ -1130,7 +1130,6 @@ U2TrackModType SQLiteModificationAction::prepare(U2OpStatus& os) {
 void SQLiteModificationAction::addModification(const U2DataId& objId, qint64 modType, const QByteArray& modDetails, U2OpStatus& os) {
     objIds.insert(objId);
 
-    coreLog.info("Add modification!");
     if (TrackOnUpdate == trackMod) {
         coreLog.info("mod is fine!");
         SAFE_POINT(!modDetails.isEmpty(), "Empty modification details!", );

@@ -785,7 +785,7 @@ QByteArray U2DbiPackUtils::packFeatureKeys(const QList<U2FeatureKey>& keys) {
     QByteArray result;
     result += QByteArray::number(keys.size());
     result += SECOND_SEP;
-    foreach (U2FeatureKey k, keys) {
+    foreach (const U2FeatureKey& k, keys) {
         result += k.name;
         result += THIRD_SEP;
         result += k.value;

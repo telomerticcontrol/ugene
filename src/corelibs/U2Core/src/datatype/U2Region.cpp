@@ -48,12 +48,12 @@ QString U2Region::toString(Format format) const {
     }
 }
 
-const QString ERROR_MESSAGE = "Cannot parse region, int cast fail";
+const static QString ERROR_MESSAGE = "Cannot parse region, int cast fail";
 U2Region U2Region::fromString(const QString& region, Format format) {
-    qint64 start;
-    qint64 length;
+    qint64 start = 0;
+    qint64 length = 0;
     QStringList list;
-    bool ok;
+    bool ok = false;
     switch(format) {
     case FormatDash: // "%1 - %2"
         list = region.split(" - ");

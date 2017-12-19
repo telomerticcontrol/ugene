@@ -32,6 +32,7 @@
 #include <U2Core/U2ObjectDbi.h>
 #include <U2Core/U2OpStatusUtils.h>
 #include <U2Core/U2SafePoints.h>
+#include <U2Core/SignalBlocker.h>
 
 #include "AnnotationTableObject.h"
 #include "GObjectTypes.h"
@@ -89,15 +90,11 @@ AnnotationGroup * AnnotationTableObject::getRootGroup() {
 }
 
 void AnnotationTableObject::reload() {
-    blockSignals(true);
-
+    SignalBlocker block(this);
+    Q_UNUSED(block);
     dataLoaded = false;
     delete rootGroup;
     rootGroup = NULL;
-    // TODO_SVEDIT: is it necessary?
-//    ensureDataLoaded();
-
-    blockSignals(false);
 }
 
 typedef QPair<AnnotationGroup *, QList<SharedAnnotationData> > AnnotationGroupData;
