@@ -130,7 +130,6 @@ public:
      * Requires: U2DbiFeature_WriteFeature feature support
      */
     void                            removeFeature(const U2DataId &featureId, U2OpStatus &os);
-    void                            removeFeature(const U2Feature &feature, U2OpStatus &os);
     /**
      * Removes subfeatures along with their parent feature from database
      * Requires: U2DbiFeature_WriteFeature feature support
@@ -193,7 +192,7 @@ private:
     void redoUpdateFeatureName(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
     void redoUpdateFeatureKey(const U2DataId& featureId, const QByteArray& modDetails, U2OpStatus& os);
 
-    void updateFeature(const U2DataId& featureId, const U2Feature& feature, U2OpStatus &os);
+    void restoreFeature(const U2DataId& featureId, U2OpStatus& os);
 
 };
 

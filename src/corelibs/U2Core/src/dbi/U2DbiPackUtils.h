@@ -124,19 +124,12 @@ public:
     static QByteArray packFeatureLocation(const U2DataId& featureId, const U2FeatureLocation& oldLocation, const U2FeatureLocation& newLocation);
     static bool unpackFeatureLocation(const QByteArray& modDetails, U2DataId& featureId, U2FeatureLocation& oldLocation, U2FeatureLocation& newLocation);
 
-    static QByteArray packFeature(const U2Feature& oldFeature, const QList<U2FeatureKey>& oldKeys,
-                                  const U2Feature& newFeature, const QList<U2FeatureKey>& newKeys);
-    static bool unpackFeature(const QByteArray& modDetails,
-                              U2Feature& oldFeature, QList<U2FeatureKey>& oldKeys,
-                              U2Feature& newFeature, QList<U2FeatureKey>& newKeys);
-
-    // make private
-    static QByteArray packOneFeature(const U2Feature& feature, const QList<U2FeatureKey>& keys);
-    static bool unpackOneFeature(const QByteArray& modDetails, U2Feature& feature, QList<U2FeatureKey>& keys);
+    static QByteArray packFeature(const U2Feature& feature, const QList<U2FeatureKey>& keys);
+    static bool unpackFeature(const QByteArray& modDetails, U2Feature& feature, QList<U2FeatureKey>& keys);
 
 private:
-    static QByteArray packOneFeatureLocation(const U2FeatureLocation& location, const char sep);
-    static bool unpackOneFeatureLocation(const QByteArray &modDetails, U2FeatureLocation& location, const char sep);
+    static QByteArray packOneFeatureLocation(const U2FeatureLocation& location);
+    static bool unpackOneFeatureLocation(const QByteArray &modDetails, U2FeatureLocation& location);
 
     static QByteArray packFeatureKeys(const QList<U2FeatureKey>& keys);
     static bool unpackFeatureKeys(const QByteArray &modDetails, QList<U2FeatureKey>& keys);

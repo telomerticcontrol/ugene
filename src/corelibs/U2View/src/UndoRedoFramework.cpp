@@ -160,12 +160,27 @@ void SequenceUndoRedoFramework::sl_sequenceChanged() {
     checkUndoRedoEnabled();
 }
 
-void SequenceUndoRedoFramework::sl_annTableAdded(AnnotationTableObject* table) {
-    annTableList.append(table);
+void SequenceUndoRedoFramework::sl_annTableAdded(AnnotationTableObject* annTableObj) {
+    connect(annTableObj, SIGNAL(si_onAnnotationModified(AnnotationModification)), SLOT(sl_lockedStateChanged()));
+    connect(annTableObj, SIGNAL(si_modifiedStateChanged()), SLOT(sl_lockedStateChanged()));
+    connect(annTableObj, SIGNAL(si_nameChanged(QString)), SLOT(sl_lockedStateChanged()));
+    connect(annTableObj, SIGNAL(si_onAnnotationsRemoved(QList<Annotation*>)), SLOT(sl_lockedStateChanged()));
+    connect(annTableObj, SIGNAL(si_onAnnotationsAdded(QList<Annotation*>)), SLOT(sl_lockedStateChanged()));
+
+    U2OpStatusImpl os;
+    annTableObj->setTrackMod(os, TrackOnUpdate);
+    SAFE_POINT_OP(os, );
+
+    annTableList.append(annTableObj);
 }
 
-void SequenceUndoRedoFramework::sl_annTableRemoved(AnnotationTableObject* table) {
-    annTableList.removeAll(table);
+void SequenceUndoRedoFramework::sl_annTableRemoved(AnnotationTableObject* annTableObj) {
+    disconnect(annTableObj, SIGNAL(si_onAnnotationModified(AnnotationModification)), this, SLOT(sl_lockedStateChanged()));
+    disconnect(annTableObj, SIGNAL(si_modifiedStateChanged()), this, SLOT(sl_lockedStateChanged()));
+    disconnect(annTableObj, SIGNAL(si_nameChanged(QString)), this, SLOT(sl_lockedStateChanged()));
+    disconnect(annTableObj, SIGNAL(si_onAnnotationsRemoved(QList<Annotation*>)), this, SLOT(sl_lockedStateChanged()));
+    disconnect(annTableObj, SIGNAL(si_onAnnotationsAdded(QList<Annotation*>)), this, SLOT(sl_lockedStateChanged()));
+    annTableList.removeAll(annTableObj);
 }
 
 U2SequenceObject* SequenceUndoRedoFramework::getSequenceObject() {

@@ -194,6 +194,7 @@ private:
     QSplitter*                      linesSplitter;
     ADVSingleSequenceHeaderWidget*  headerWidget;
 
+    // TODO_SVEDIT: this should be in editor
     SequenceUndoRedoFramework*      undoFWK;
     AnnotationUndoRedoFramework*    annsUndoFWK;
 

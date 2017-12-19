@@ -689,9 +689,9 @@ QByteArray U2DbiPackUtils::packFeatureLocation(const U2DataId& featureId, const 
     QByteArray result;
     result += featureId.toHex();
     result += SEP;
-    result += packOneFeatureLocation(oldLocation, SECOND_SEP);
+    result += packOneFeatureLocation(oldLocation);
     result += SEP;
-    result += packOneFeatureLocation(newLocation, SECOND_SEP);
+    result += packOneFeatureLocation(newLocation);
     return result;
 }
 
@@ -701,32 +701,17 @@ bool U2DbiPackUtils::unpackFeatureLocation(const QByteArray &modDetails, U2DataI
 
     featureId = QByteArray::fromHex(tokens[0]);
 
-    bool ok = unpackOneFeatureLocation(tokens[1], oldLocation, SECOND_SEP);
+    bool ok = unpackOneFeatureLocation(tokens[1], oldLocation);
     CHECK(ok, false);
 
-    ok = unpackOneFeatureLocation(tokens[2], newLocation, SECOND_SEP);
+    ok = unpackOneFeatureLocation(tokens[2], newLocation);
     CHECK(ok, false);
 
     return true;
 }
 
-QByteArray U2DbiPackUtils::packFeature(const U2Feature& oldFeature, const QList<U2FeatureKey>& oldKeys,
-                              const U2Feature& newFeature, const QList<U2FeatureKey>& newKeys) {
+QByteArray U2DbiPackUtils::packFeature(const U2Feature& feature, const QList<U2FeatureKey>& keys) {
     QByteArray result;
-    result += packOneFeature(oldFeature, oldKeys);
-    result += SEP;
-    result += packOneFeature(newFeature, newKeys);
-    return result;
-}
-
-bool U2DbiPackUtils::unpackFeature(const QByteArray& modDetails,
-                          U2Feature& oldFeature, QList<U2FeatureKey>& oldKeys,
-                          U2Feature& newFeature, QList<U2FeatureKey>& newKeys) {
-    return true;
-}
-
-QByteArray U2DbiPackUtils::packOneFeature(const U2Feature& feature, const QList<U2FeatureKey>& keys) {
-    QByteArray result; // 8 items
 
     result += feature.id.toHex();
     result += SEP;
@@ -738,20 +723,19 @@ QByteArray U2DbiPackUtils::packOneFeature(const U2Feature& feature, const QList<
     result += SEP;
     result += feature.name;
     result += SEP;
-    result += packOneFeatureLocation(feature.location, SECOND_SEP);
+    result += packOneFeatureLocation(feature.location);
     result += SEP;
     result += QByteArray::number(feature.featureClass);
     result += SEP;
     result += QByteArray::number(feature.featureType);
     result += SEP;
-    result += packFeatureKeys(keys); // pack keys number?
+    result += packFeatureKeys(keys);
 
     return result;
 }
 
-bool U2DbiPackUtils::unpackOneFeature(const QByteArray& modDetails, U2Feature& feature, QList<U2FeatureKey>& keys) {
+bool U2DbiPackUtils::unpackFeature(const QByteArray& modDetails, U2Feature& feature, QList<U2FeatureKey>& keys) {
     QList<QByteArray> tokens = modDetails.split(SEP);
-    //! TODO_SVEDIT: return back afters keys!
     SAFE_POINT(tokens.count() == 9, QString("Invalid modDetails, wrong tokens count: %1. Expected - 9.").arg(tokens.size()), false);
 
     feature.id = QByteArray::fromHex(tokens[0]);
@@ -759,35 +743,34 @@ bool U2DbiPackUtils::unpackOneFeature(const QByteArray& modDetails, U2Feature& f
     feature.parentFeatureId = QByteArray::fromHex(tokens[2]);
     feature.rootFeatureId = QByteArray::fromHex(tokens[3]);
     feature.name = QString(tokens[4]);
-    bool ok = unpackOneFeatureLocation(tokens[5], feature.location, SECOND_SEP);
+    bool ok = unpackOneFeatureLocation(tokens[5], feature.location);
     CHECK(ok, false);
-    feature.featureClass = (U2Feature::FeatureClass)(tokens[6].toUInt(&ok)); //??
+    feature.featureClass = (U2Feature::FeatureClass)(tokens[6].toUInt(&ok));
     CHECK(ok, false);
-    feature.featureType = (U2FeatureType)(tokens[7].toUInt(&ok)); //??
+    feature.featureType = (U2FeatureType)(tokens[7].toUInt(&ok));
     CHECK(ok, false);
-    // TODO_SVEDIT: something is wrong here!
     ok = unpackFeatureKeys(tokens[8], keys);
     CHECK(ok, false);
 
     return true;
 }
 
-QByteArray U2DbiPackUtils::packOneFeatureLocation(const U2FeatureLocation& location, const char sep) {
+QByteArray U2DbiPackUtils::packOneFeatureLocation(const U2FeatureLocation& location) {
     QByteArray result;
     result += QByteArray::number(location.strand.getDirectionValue());
-    result += sep;
+    result += SECOND_SEP;
     result += QByteArray::number(location.region.startPos);
-    result += sep;
+    result += SECOND_SEP;
     result += QByteArray::number(location.region.length);
     return result;
 }
 
-bool U2DbiPackUtils::unpackOneFeatureLocation(const QByteArray &modDetails, U2FeatureLocation& location, const char sep) {
-    QList<QByteArray> tokens = modDetails.split(sep);
+bool U2DbiPackUtils::unpackOneFeatureLocation(const QByteArray &modDetails, U2FeatureLocation& location) {
+    QList<QByteArray> tokens = modDetails.split(SECOND_SEP);
     SAFE_POINT(tokens.count() == 3, QString("Invalid modDetails, wrong tokens count: %1. Expected - 3.").arg(tokens.size()), false);
 
     bool ok = false;
-    location.strand = U2Strand((U2Strand::Direction)tokens[0].toInt(&ok)); // TODO_SVEDIT: cast error
+    location.strand = U2Strand((U2Strand::Direction)tokens[0].toInt(&ok));
     CHECK(ok, false);
     qint64 start = tokens[1].toLongLong(&ok);
     CHECK(ok, false);
@@ -816,10 +799,8 @@ bool U2DbiPackUtils::unpackFeatureKeys(const QByteArray &modDetails, QList<U2Fea
     int size = tokens[0].toInt();
     CHECK(size != 0, true);
     for (int i = 1; i < size + 1; i++) {
-//    foreach (QByteArray t, tokens) {
         QByteArray t = tokens[i];
         QList<QByteArray> innerTokens = t.split(THIRD_SEP);
-//        coreLog.info(QString(t.to));
         SAFE_POINT(innerTokens.count() == 2, QString("Invalid modDetails, wrong tokens count: %1. Expected - 2 for feature key.").arg(innerTokens.size()), false);
         U2FeatureKey featureKey(innerTokens.first(), innerTokens.last());
         keys.append(featureKey);
