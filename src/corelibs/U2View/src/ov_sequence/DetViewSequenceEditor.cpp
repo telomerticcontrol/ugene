@@ -48,9 +48,10 @@
 namespace U2 {
 
 DetViewSequenceEditor::DetViewSequenceEditor(DetView* _view)
-    : view(_view),
-      cursorColor(Qt::black),
-      animationTimer(this) {
+    : cursorColor(Qt::black),
+      animationTimer(this),
+      view(_view)
+{
     reset();
     connect(&animationTimer, SIGNAL(timeout()), SLOT(sl_changeCursorColor()));
     setParent(view);
@@ -76,36 +77,39 @@ void DetViewSequenceEditor::reset() {
 }
 
 bool DetViewSequenceEditor::eventFilter(QObject *, QEvent *event) {
-    CHECK(event->type() != QEvent::Wheel, false);
-    CHECK(event->type() != QEvent::ContextMenu, false);
-
     SequenceObjectContext* ctx = view->getSequenceContext();
     const QList<ADVSequenceWidget*> list = ctx->getSequenceWidgets();
     CHECK(!list.isEmpty(), false);
     ADVSequenceWidget* wgt = list.first();
     AnnotatedDNAView* dnaView = wgt->getAnnotatedDNAView();
     QAction* a = dnaView->removeAnnsAndQsAction;
-    if (event->type() == QEvent::FocusOut) {
+
+    switch (event->type()) {
+    case QEvent::FocusOut:
         // return delete
         a->setShortcut(QKeySequence(Qt::Key_Delete));
-    }
-    if (event->type() == QEvent::FocusIn) {
+        return true;
+    case QEvent::FocusIn:
         // block delete again
         a->setShortcut(QKeySequence());
-    }
+        return true;
 
-    // TODO_SVEDIT: shift button!
-    if (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease || event->type() == QEvent::MouseMove) {
+        // TODO_SVEDIT: shift button!
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseButtonRelease:
+    case QEvent::MouseMove: {
         QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);
         SAFE_POINT(mouseEvent != NULL, "Failed to cast QEvent to QMouseEvent", true);
 
-        qint64 pos = view->getRenderArea()->coordToPos(view->toRenderAreaPoint(mouseEvent->pos()));
-        setCursor(pos); // use navigate and take shift into account
+        if (mouseEvent->buttons() & Qt::LeftButton) {
+            qint64 pos = view->getRenderArea()->coordToPos(view->toRenderAreaPoint(mouseEvent->pos()));
+            setCursor(pos); // use navigate and take shift into account
+        }
         return false;
     }
 
-    // TODO_SVEDIT: separate methods
-    if (event->type() == QEvent::KeyPress) {
+        // TODO_SVEDIT: separate methods
+    case QEvent::KeyPress: {
         // set cursor position
         QKeyEvent* keyEvent = dynamic_cast<QKeyEvent*>(event);
         SAFE_POINT(keyEvent != NULL, "Failed to cast QEvent to QKeyEvent", true);
@@ -149,15 +153,18 @@ bool DetViewSequenceEditor::eventFilter(QObject *, QEvent *event) {
                 }
             }
         }
+        return true;
     }
-    return true;
+    default:
+        return false;
+    }
 }
 
 void DetViewSequenceEditor::setCursor(int newPos) {
     CHECK(newPos >= 0 && newPos <= view->getSequenceLength(), );
     if (cursor != newPos) {
         cursor = newPos;
-        view->ensureVisible(cursor);
+        view->ensurePositionVisible(cursor);
         view->update();
     }
 }

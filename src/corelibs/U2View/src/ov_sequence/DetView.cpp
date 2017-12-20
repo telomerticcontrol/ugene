@@ -34,6 +34,7 @@
 #include <U2Core/DNASequenceSelection.h>
 #include <U2Core/DNATranslation.h>
 #include <U2Core/DNATranslationImpl.h>
+#include <U2Core/SignalBlocker.h>
 #include <U2Core/TextUtils.h>
 #include <U2Core/U1AnnotationUtils.h>
 #include <U2Core/U2OpStatusUtils.h>
@@ -41,6 +42,7 @@
 
 #include <U2Gui/GraphUtils.h>
 #include <U2Gui/GScrollBar.h>
+#include <U2Gui/SelectionModificationHelper.h>
 
 #include <QApplication>
 #include <QFontMetrics>
@@ -220,48 +222,47 @@ int DetView::getShift() const {
     return isWrapMode() ? currentShiftsCounter * getDetViewRenderArea()->getShiftHeight() : 0;
 }
 
-void DetView::ensureVisible(int pos) {
+void DetView::ensurePositionVisible(int pos) {
     CHECK(pos >= 0 && pos <= getSequenceLength(), );
 
+    DetViewRenderArea* detViewRenderArea = getDetViewRenderArea();
     if (isWrapMode()) {
-        DetViewRenderArea* renderArea = getDetViewRenderArea();
         if (!visibleRange.contains(pos)) {
             if (pos < visibleRange.startPos) {
                 // scroll up till the line is visible
                 int line = pos / getSymbolsPerLine();
                 int listStartPos = line * getSymbolsPerLine();
                 visibleRange.startPos = listStartPos;
-                currentShiftsCounter = renderArea->getDirectLine() + 1;
+                currentShiftsCounter = detViewRenderArea->getDirectLine() + 1;
             } else {
-                // scroll down till the line is visible
-                int line = pos / getSymbolsPerLine();
-                int listStartPos = line * getSymbolsPerLine();
-                visibleRange.startPos = listStartPos;
-                currentShiftsCounter = 0;
+                // scroll down till the line becomes visible
+                const int line = pos / getSymbolsPerLine();
+                const int visibleShiftsCount = detViewRenderArea->height() / detViewRenderArea->getShiftHeight();
+                const int shiftToEnsureIsVisible = line * numShiftsInOneLine + detViewRenderArea->getDirectLine() + 1;
+                const int lastVisibleShift = verticalScrollBar->value() + visibleShiftsCount;
+                const int shiftsToScrollDown = shiftToEnsureIsVisible - lastVisibleShift + 1;
 
-                // get the count of visible lines
-                int visibleLinesCount = renderArea->getLinesCount() + (getShift() != 0 ? 1 : 0);
-                if (renderArea->height() + getShift() - renderArea->getShiftsCount() * renderArea->getShiftHeight() * visibleLinesCount > 0) {
-                    visibleLinesCount ++;
-                }
+                currentShiftsCounter += shiftsToScrollDown;
+                visibleRange.startPos += getSymbolsPerLine() * (currentShiftsCounter / numShiftsInOneLine);
+                currentShiftsCounter %= numShiftsInOneLine;
             }
         } else {
             // ensure the direct strand is visible
-            if (currentShiftsCounter > renderArea->getDirectLine() &&
+            if (currentShiftsCounter > detViewRenderArea->getDirectLine() &&
                     U2Region(visibleRange.startPos, getSymbolsPerLine()).contains(pos)) {
                 // this is the first line, just remove the shift
-                currentShiftsCounter = renderArea->getDirectLine() + 1;
+                currentShiftsCounter = detViewRenderArea->getDirectLine() + 1;
             }
 
             if (U2Region(visibleRange.endPos() - getSymbolsPerLine(), getSymbolsPerLine()).contains(pos)) {
                 // the last visible line, scroll a little
                 // TODO_SVEDIT: check the tail
-                int availableSpace = renderArea->height() + currentShiftsCounter * renderArea->getShiftHeight();
-                int lastLinePart = availableSpace % (numShiftsInOneLine * renderArea->getShiftHeight());
-                int lastVisibleShifts = lastLinePart / renderArea->getShiftHeight();
+                int availableSpace = detViewRenderArea->height() + currentShiftsCounter * detViewRenderArea->getShiftHeight();
+                int lastLinePart = availableSpace % (numShiftsInOneLine * detViewRenderArea->getShiftHeight());
+                int lastVisibleShifts = lastLinePart / detViewRenderArea->getShiftHeight();
 
-                if (lastVisibleShifts <= renderArea->getDirectLine()) {
-                    currentShiftsCounter += renderArea->getDirectLine() - lastVisibleShifts + 2;
+                if (lastVisibleShifts <= detViewRenderArea->getDirectLine()) {
+                    currentShiftsCounter += detViewRenderArea->getDirectLine() - lastVisibleShifts + 2;
                 }
                 if (currentShiftsCounter > numShiftsInOneLine) {
                     currentShiftsCounter %= numShiftsInOneLine;
@@ -271,6 +272,23 @@ void DetView::ensureVisible(int pos) {
             // do nothing otherwise -- the cursor is visible
         }
     } else {
+        // ensure the direct strand is visible
+        const int visibleShiftsCount = detViewRenderArea->height() / detViewRenderArea->getShiftHeight();
+        const int shiftToEnsureIsVisible = detViewRenderArea->getDirectLine() + 1;
+        const int firstVisibleShift = verticalScrollBar->value();
+        const int lastVisibleShift = verticalScrollBar->value() + visibleShiftsCount;
+
+        if (shiftToEnsureIsVisible < firstVisibleShift) {
+            // the direct line is not visible, scroll up till the line becomes visible
+            const int shiftsToScrollUp = firstVisibleShift - shiftToEnsureIsVisible + 1;
+            verticalScrollBar->setValue(verticalScrollBar->value() - shiftsToScrollUp);
+        } else if (shiftToEnsureIsVisible > lastVisibleShift) {
+            // the direct line is not visible, scroll down till the line becomes visible
+            const int shiftsToScrollDown = shiftToEnsureIsVisible - lastVisibleShift + 1;
+            verticalScrollBar->setValue(verticalScrollBar->value() + shiftsToScrollDown - 1);
+        }
+
+        // ensure horizontal position is visible
         CHECK(!visibleRange.contains(pos), );
         if (pos < visibleRange.startPos) {
             visibleRange.startPos = pos;
@@ -336,7 +354,7 @@ void DetView::sl_wrapSequenceToggle(bool v) {
     GCOUNTER( cvar, tvar, "SequenceView::DetView::WrapSequence" );
     // turn off/on multiline mode
     scrollBar->setHidden(v);
-    verticalScrollBar->setHidden(!v);
+    verticalScrollBar->setVisible(v);
 
     currentShiftsCounter = 0;
 
@@ -350,17 +368,24 @@ void DetView::sl_wrapSequenceToggle(bool v) {
 
     addUpdateFlags(GSLV_UF_NeedCompleteRedraw);
     completeUpdate();
+    if (!v) {
+        verticalScrollBar->setSliderPosition(0);
+    }
 }
 
 void DetView::sl_verticalSrcollBarMoved(int pos) {
-    currentShiftsCounter = pos % numShiftsInOneLine;
-    DetViewRenderArea* detArea = getDetViewRenderArea();
-    if (pos / numShiftsInOneLine == visibleRange.startPos / detArea->getSymbolsPerLine()) {
+    if (isWrapMode()) {
+        currentShiftsCounter = pos % numShiftsInOneLine;
+        DetViewRenderArea* detArea = getDetViewRenderArea();
+        if (pos / numShiftsInOneLine == visibleRange.startPos / detArea->getSymbolsPerLine()) {
+            updateVisibleRange();
+            completeUpdate();
+            return;
+        }
+        setStartPos((pos / numShiftsInOneLine) * detArea->getSymbolsPerLine());
+    } else {
         updateVisibleRange();
-        completeUpdate();
-        return;
     }
-    setStartPos((pos / numShiftsInOneLine) * detArea->getSymbolsPerLine());
 }
 
 void DetView::pack() {
@@ -389,47 +414,23 @@ void DetView::hideEvent(QHideEvent * e) {
 }
 
 void DetView::mouseMoveEvent(QMouseEvent *me) {
+    if (!me->buttons()) {
+        setBorderCursor(me->pos());
+    } else if (me->buttons() & Qt::LeftButton) {
+        Qt::CursorShape shape = cursor().shape();
+        if (shape != Qt::ArrowCursor) {
+            moveBorder(me->pos());
+            QWidget::mouseMoveEvent(me);
+            return;
+        }
+    }
+
     if (lastPressPos == -1) {
         QWidget::mouseMoveEvent(me);
         return;
     }
     if (me->buttons() & Qt::LeftButton) {
-        QPoint areaPoint = toRenderAreaPoint(me->pos());
-
-        // manage scrollbar auto-scrolling
-        if (isWrapMode()) {
-            if (areaPoint.y() > height()) {
-                verticalScrollBar->setupRepeatAction(QAbstractSlider::SliderSingleStepAdd);
-            } else if (areaPoint.y() <= 0) {
-                verticalScrollBar->setupRepeatAction(QAbstractSlider::SliderSingleStepSub);
-            } else {
-                verticalScrollBar->setupRepeatAction(QAbstractSlider::SliderNoAction);
-            }
-        } else {
-            if (areaPoint.x() > width()) {
-                scrollBar->setupRepeatAction(QAbstractSlider::SliderSingleStepAdd);
-            } else if (areaPoint.x() <= 0) {
-                scrollBar->setupRepeatAction(QAbstractSlider::SliderSingleStepSub);
-            } else {
-                scrollBar->setupRepeatAction(QAbstractSlider::SliderNoAction);
-            }
-        }
-
-        // compute selection
-        qint64 pos = renderArea->coordToPos(areaPoint);
-        if (isWrapMode() && (areaPoint.x() > width() || areaPoint.x() <= 0)) {
-            QPoint boundaryPoint(areaPoint.x() > width() ? width() : 0, areaPoint.y());
-            pos = renderArea->coordToPos(boundaryPoint);
-        }
-        qint64 selStart = qMin(lastPressPos, pos);
-        qint64 selLen = qAbs(pos - lastPressPos);
-        if (selStart < 0) {
-            selLen += selStart;
-            selStart = 0;
-        } else if (selStart + selLen > seqLen) {
-            selLen = seqLen - selStart;
-        }
-        setSelection(U2Region(selStart, selLen));
+        moveBorder(me->pos());
     }
     QWidget::mouseMoveEvent(me);
 }
@@ -590,34 +591,59 @@ void DetView::updateSize() {
 
 void DetView::updateVerticalScrollBar() {
     verticalScrollBar->disconnect(this);
-    if (!isWrapMode()) {
+
+    DetViewRenderArea* renderer = getDetViewRenderArea();
+    bool wasVisible = verticalScrollBar->isVisible();
+
+    const int shiftsCount = renderer->getShiftsCount();
+    const int shiftsHeight = renderer->getShiftHeight();
+    const int height = renderer->height();
+    bool isSingleViewLineNotVisible = !isWrapMode() && (height < shiftsCount * shiftsHeight);
+    verticalScrollBar->setVisible(isSingleViewLineNotVisible || isWrapMode());
+    if (wasVisible && verticalScrollBar->isHidden()) {
+        verticalScrollBar->setSliderPosition(0);
+    }
+
+    int maximum = 0;
+    if (isWrapMode()) {
+        DetViewRenderArea* detArea = getDetViewRenderArea();
+        int linesCount = seqLen / detArea->getSymbolsPerLine();
+        if (seqLen % detArea->getSymbolsPerLine() != 0) {
+            linesCount++;
+        }
+
+        numShiftsInOneLine = getDetViewRenderArea()->getShiftsCount();
+        int shiftsOnWidget = renderArea->height() / getDetViewRenderArea()->getShiftHeight();
+        maximum = numShiftsInOneLine * linesCount - shiftsOnWidget;
+    } else if (isSingleViewLineNotVisible) {
+        numShiftsInOneLine = 1;
+        const int shiftsVisible = height / shiftsHeight;
+        maximum = shiftsCount - shiftsVisible;
+        const int sliderPosition = verticalScrollBar->sliderPosition();
+        const int currentMaximum = verticalScrollBar->maximum();
+        if (sliderPosition == currentMaximum && currentMaximum > maximum) {
+            const int newSliderPos = sliderPosition - (currentMaximum - maximum);
+            verticalScrollBar->setSliderPosition(newSliderPos);
+        }
+    } else {
         return;
     }
 
-    DetViewRenderArea* detArea = getDetViewRenderArea();
-    int linesCount = seqLen / detArea->getSymbolsPerLine();
-    if (seqLen % detArea->getSymbolsPerLine() != 0) {
-        linesCount++;
-    }
-
     verticalScrollBar->setMinimum(0);
-
-    numShiftsInOneLine = getDetViewRenderArea()->getShiftsCount();
-    int shiftsOnWidget = renderArea->height() / getDetViewRenderArea()->getShiftHeight();
-
-    verticalScrollBar->setMaximum(numShiftsInOneLine * linesCount - shiftsOnWidget);
+    verticalScrollBar->setMaximum(maximum);
     verticalScrollBar->setPageStep(numShiftsInOneLine);
     updateVerticalScrollBarPosition();
-
     connect(verticalScrollBar, SIGNAL(valueChanged(int)), SLOT(sl_verticalSrcollBarMoved(int)));
 }
 
 void DetView::updateVerticalScrollBarPosition() {
-    DetViewRenderArea* detArea = getDetViewRenderArea();
-    verticalScrollBar->disconnect(this);
-    verticalScrollBar->setSliderPosition(qMin( verticalScrollBar->maximum(),
-                                               currentShiftsCounter + numShiftsInOneLine* int(visibleRange.startPos / detArea->getSymbolsPerLine())));
-    connect(verticalScrollBar, SIGNAL(valueChanged(int)), SLOT(sl_verticalSrcollBarMoved(int)));
+    if (isWrapMode()) {
+        DetViewRenderArea* detArea = getDetViewRenderArea();
+        SignalBlocker blocker(verticalScrollBar);
+        Q_UNUSED(blocker);
+        verticalScrollBar->setSliderPosition(qMin(verticalScrollBar->maximum(),
+            currentShiftsCounter + numShiftsInOneLine * int(visibleRange.startPos / detArea->getSymbolsPerLine())));
+    }
 }
 
 void DetView::setupTranslationsMenu() {
@@ -637,12 +663,75 @@ void DetView::setupGeneticCodeMenu() {
     button->setObjectName("AminoToolbarButton");
 }
 
+int DetView::getVerticalScrollBarPosition() {
+    if (!isWrapMode()) {
+        return verticalScrollBar->sliderPosition();
+    }
+    return 0;
+}
+
+QPoint DetView::getRenderAreaPointAfterAutoScroll(const QPoint& pos) {
+    QPoint areaPoint = toRenderAreaPoint(pos);
+    if (isWrapMode()) {
+        if (areaPoint.y() > height()) {
+            verticalScrollBar->setupRepeatAction(QAbstractSlider::SliderSingleStepAdd);
+        } else if (areaPoint.y() <= 0) {
+            verticalScrollBar->setupRepeatAction(QAbstractSlider::SliderSingleStepSub);
+        } else {
+            verticalScrollBar->setupRepeatAction(QAbstractSlider::SliderNoAction);
+        }
+    } else {
+        if (areaPoint.x() > width()) {
+            scrollBar->setupRepeatAction(QAbstractSlider::SliderSingleStepAdd);
+        } else if (areaPoint.x() <= 0) {
+            scrollBar->setupRepeatAction(QAbstractSlider::SliderSingleStepSub);
+        } else {
+            scrollBar->setupRepeatAction(QAbstractSlider::SliderNoAction);
+        }
+    }
+
+    if (isWrapMode() && (areaPoint.x() > width() || areaPoint.x() <= 0)) {
+        areaPoint = QPoint(areaPoint.x() > width() ? width() : 0, areaPoint.y());
+    }
+
+    return areaPoint;
+}
+
+void DetView::moveBorder(const QPoint& p) {
+    QPoint areaPoint = getRenderAreaPointAfterAutoScroll(p);
+    resizeSelection(areaPoint);
+}
+
+void DetView::setBorderCursor(const QPoint& p) {
+    if (!isWrapMode()) {
+        GSequenceLineView::setBorderCursor(p);
+    } else {
+        const int sliderPos = verticalScrollBar->sliderPosition();
+        const int shiftHeight = getDetViewRenderArea()->getShiftHeight();
+        const int lineHeight = numShiftsInOneLine * shiftHeight;
+        const int globalY = p.y() + sliderPos * shiftHeight;
+        const int numLines = qRound(double(globalY) / lineHeight + 0.5);
+
+        const double scale = renderArea->getCurrentScale();
+        const int width = getRenderArea()->width();
+        const int symPerLine = width / scale;
+        const int correctWidth = symPerLine * scale;
+
+        const int offset = correctWidth * (numLines - 1);
+        CHECK(offset >= 0, );
+
+        QPoint pos(p.x() + offset, p.y());
+        GSequenceLineView::setBorderCursor(pos);
+    }
+}
+
 /************************************************************************/
 /* DetViewRenderArea */
 /************************************************************************/
 DetViewRenderArea::DetViewRenderArea(DetView* v)
     : GSequenceLineViewAnnotatedRenderArea(v, true) {
     renderer = DetViewRendererFactory::createRenderer(getDetView(), view->getSequenceContext(), v->isWrapMode());
+    setMouseTracking(true);
     updateSize();
 }
 
