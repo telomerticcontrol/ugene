@@ -32,6 +32,37 @@ namespace U2 {
 class Document;
 class U2UseCommonUserModStep;
 
+class FixAnnotationsUtils {
+public:
+    FixAnnotationsUtils(U2OpStatus* os, U2SequenceObject *seqObj, const U2Region &regionToReplace, const DNASequence &sequence2Insert,
+                        bool recalculateQualifiers = false,
+                        U1AnnotationUtils::AnnotationStrategyForResize _str = U1AnnotationUtils::AnnotationStrategyForResize_Resize,
+                        bool mergeAnnotations = false);
+    void fixAnnotations();
+//    QMap<Annotation *, QList<QPair<QString, QString> > > getAnnotationsForReport() { return annotationForReport; }
+
+private:
+    QMap<QString, QList<SharedAnnotationData> > fixAnnotation(Annotation *an, bool &annIsRemoved);
+    void fixAnnotationQualifiers(Annotation *an);
+    void fixTranslationQualifier(SharedAnnotationData &ad);
+    void fixTranslationQualifier(Annotation *an);
+    U2Qualifier getFixedTranslationQualifier(const SharedAnnotationData &ad);
+    bool isRegionValid(const U2Region &region) const;
+public:
+    bool                                                    mergeAnnotations;
+    bool                                                    recalculateQualifiers;
+    bool                                                    inplaceMod;
+    GUrl                                                    url;
+    U1AnnotationUtils::AnnotationStrategyForResize          strat;
+    QList<Document *>                                       docs;
+    U2SequenceObject *                                      seqObj;
+    U2Region                                                regionToReplace;
+    DNASequence                                             sequence2Insert;
+    QMap<Annotation *, QList<QPair<QString, QString> > >    annotationForReport;
+
+    U2OpStatus* stateInfo;
+};
+
 class U2CORE_EXPORT ModifySequenceContentTask : public Task {
     Q_OBJECT
 public:
@@ -44,20 +75,20 @@ public:
     QString generateReport() const;
 
 private:
-    void fixAnnotations();
-    QMap<QString, QList<SharedAnnotationData> > fixAnnotation(Annotation *an, bool &annIsRemoved);
-    void fixAnnotationQualifiers(Annotation *an);
-    void fixTranslationQualifier(SharedAnnotationData &ad);
-    void fixTranslationQualifier(Annotation *an);
-    U2Qualifier getFixedTranslationQualifier(const SharedAnnotationData &ad);
+//    void fixAnnotations();
+//    QMap<QString, QList<SharedAnnotationData> > fixAnnotation(Annotation *an, bool &annIsRemoved);
+//    void fixAnnotationQualifiers(Annotation *an);
+//    void fixTranslationQualifier(SharedAnnotationData &ad);
+//    void fixTranslationQualifier(Annotation *an);
+//    U2Qualifier getFixedTranslationQualifier(const SharedAnnotationData &ad);
     void cloneSequenceAndAnnotations();
-    bool isRegionValid(const U2Region &region) const;
+//    bool isRegionValid(const U2Region &region) const;
 
     DocumentFormatId                                        resultFormatId;
     bool                                                    mergeAnnotations;
     bool                                                    recalculateQualifiers;
-    Document *                                              curDoc;
-    Document *                                              newDoc;
+    Document *                                              curDoc; // leave
+    Document *                                              newDoc;// leave
     bool                                                    inplaceMod;
     GUrl                                                    url;
     U1AnnotationUtils::AnnotationStrategyForResize          strat;

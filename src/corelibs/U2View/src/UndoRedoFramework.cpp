@@ -154,6 +154,9 @@ SequenceUndoRedoFramework::SequenceUndoRedoFramework(QObject *p, U2SequenceObjec
     // TODO_SVEDIT: seq object should notify about changes
     connect(undoAction, SIGNAL(triggered(bool)), SLOT(sl_sequenceChanged()));
     connect(redoAction, SIGNAL(triggered(bool)), SLOT(sl_sequenceChanged()));
+
+    // get adv context
+//    v
 }
 
 void SequenceUndoRedoFramework::sl_sequenceChanged() {

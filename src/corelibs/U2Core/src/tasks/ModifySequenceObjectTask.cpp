@@ -51,6 +51,196 @@
 
 namespace U2 {
 
+typedef QPair<QString, QString> QStrStrPair;
+
+FixAnnotationsUtils::FixAnnotationsUtils(U2OpStatus* os, U2SequenceObject *seqObj, const U2Region &regionToReplace, const DNASequence &sequence2Insert,
+                                         bool recalculateQualifiers, U1AnnotationUtils::AnnotationStrategyForResize str, bool mergeAnnotations)
+    : stateInfo(os),
+      mergeAnnotations(mergeAnnotations),
+      recalculateQualifiers(recalculateQualifiers),
+      strat(str),
+      seqObj(seqObj),
+      regionToReplace(regionToReplace),
+      sequence2Insert(sequence2Insert) {
+
+}
+
+void FixAnnotationsUtils::fixAnnotations() {
+    QList<GObject *> annotationTablesList;
+    if (AppContext::getProject() != NULL) {
+        annotationTablesList = GObjectUtils::findObjectsRelatedToObjectByRole(seqObj, GObjectTypes::ANNOTATION_TABLE,
+            ObjectRole_Sequence, GObjectUtils::findAllObjects(UOF_LoadedOnly, GObjectTypes::ANNOTATION_TABLE), UOF_LoadedOnly);
+    } else {
+        foreach(Document *d, docs) {
+            QList<GObject *> allAnnotationTables = d->findGObjectByType(GObjectTypes::ANNOTATION_TABLE);
+            foreach(GObject *table, allAnnotationTables) {
+                if (table->hasObjectRelation(seqObj, ObjectRole_Sequence)) {
+                    annotationTablesList.append(table);
+                }
+            }
+        }
+    }
+
+    foreach (GObject *table, annotationTablesList) {
+        AnnotationTableObject *ato = qobject_cast<AnnotationTableObject *>(table);
+        if (NULL != ato) {
+            QMap<QString, QList<SharedAnnotationData> > group2AnnotationsToAdd;
+            QList<Annotation *> annotationToRemove;
+            foreach(Annotation *an, ato->getAnnotations()) {
+                bool annIsToBeRemoved = false;
+                QMap<QString, QList<SharedAnnotationData> > newAnnotations = fixAnnotation(an, annIsToBeRemoved);
+                foreach (const QString &groupName, newAnnotations.keys()) {
+                    group2AnnotationsToAdd[groupName].append(newAnnotations[groupName]);
+                }
+                if (annIsToBeRemoved) {
+                    annotationToRemove.append(an);
+                }
+            }
+            foreach (const QString &groupName, group2AnnotationsToAdd.keys()) {
+                ato->addAnnotations(group2AnnotationsToAdd[groupName], groupName);
+            }
+            ato->removeAnnotations(annotationToRemove);
+        } else {
+            assert(false);
+            coreLog.error(L10N::nullPointerError("Annotation table object"));
+        }
+    }
+}
+
+QMap<QString, QList<SharedAnnotationData> > FixAnnotationsUtils::fixAnnotation(Annotation *an, bool &annIsRemoved) {
+    QMap<QString, QList<SharedAnnotationData> > result;
+    SAFE_POINT(NULL != an, L10N::nullPointerError("Annotation"), result);
+    AnnotationTableObject *ato = an->getGObject();
+    SAFE_POINT(NULL != ato, L10N::nullPointerError("Annotation table object"), result);
+
+    // TODO_SVEDIT: pass master id to qualifiers change?
+    QList<QVector<U2Region> > newRegions = U1AnnotationUtils::fixLocationsForReplacedRegion(regionToReplace,
+        sequence2Insert.seq.length(), an->getRegions(), strat);
+
+    if (newRegions[0].isEmpty()) {
+        annIsRemoved = true;
+    } else {
+        fixAnnotationQualifiers(an);
+
+        an->updateRegions(newRegions[0]);
+        fixTranslationQualifier(an);
+        for (int i = 1; i < newRegions.size(); i++) {
+            SharedAnnotationData splittedAnnotation(new AnnotationData(*an->getData()));
+            const QString groupName = an->getGroup()->getGroupPath();
+            splittedAnnotation->location->regions = newRegions[i];
+            fixTranslationQualifier(splittedAnnotation);
+            result[groupName].append(splittedAnnotation);
+        }
+    }
+    return result;
+}
+
+void FixAnnotationsUtils::fixAnnotationQualifiers(Annotation *an) {
+    CHECK(recalculateQualifiers, );
+
+    QRegExp locationMatcher("(\\d+)\\.\\.(\\d+)");
+    foreach (const U2Qualifier &qual, an->getQualifiers()) {
+        QString newQualifierValue = qual.value;
+
+        int lastModifiedPos = 0;
+        int lastFoundPos = 0;
+        while ((lastFoundPos = locationMatcher.indexIn(qual.value, lastFoundPos)) != -1) {
+            const QString matchedRegion = locationMatcher.cap();
+            const qint64 start = locationMatcher.cap(1).toLongLong() - 1; // position starts with 0
+            const qint64 end = locationMatcher.cap(2).toLongLong() - 1;
+
+            U2Region referencedRegion(start, end - start + 1);
+            if (isRegionValid(referencedRegion)) {
+                QList<QVector<U2Region> > newRegions = U1AnnotationUtils::fixLocationsForReplacedRegion(regionToReplace,
+                    sequence2Insert.seq.length(), QVector<U2Region>() << referencedRegion, U1AnnotationUtils::AnnotationStrategyForResize_Resize);
+
+                if (!newRegions.isEmpty() && !newRegions[0].empty()) {
+                    QString newRegionsStr;
+                    foreach (const U2Region &region, newRegions[0]) {
+                        newRegionsStr += QString("%1..%2,").arg(region.startPos + 1).arg(region.endPos()); // position starts with 1
+                    }
+                    newRegionsStr.chop(1); // remove last comma
+
+                    const int oldRegionPos = newQualifierValue.indexOf(matchedRegion, lastModifiedPos);
+                    SAFE_POINT(oldRegionPos != -1, "Unexpected region matched", );
+
+                    newQualifierValue.replace(oldRegionPos, matchedRegion.length(), newRegionsStr);
+                    lastModifiedPos = oldRegionPos + newRegionsStr.length();
+                } else {
+                    annotationForReport[an].append(QStrStrPair(qual.name, matchedRegion));
+//                    if (!isReportingEnabled()) {
+//                        setReportingEnabled(true);
+//                    }
+                }
+            }
+
+            lastFoundPos += locationMatcher.matchedLength();
+        }
+
+        if (newQualifierValue != qual.value) {
+            an->removeQualifier(qual);
+            an->addQualifier(U2Qualifier(qual.name, newQualifierValue));
+        }
+    }
+}
+
+void FixAnnotationsUtils::fixTranslationQualifier(SharedAnnotationData &ad) {
+    CHECK(recalculateQualifiers, );
+
+    const U2Qualifier translQual = getFixedTranslationQualifier(ad);
+    CHECK(translQual.isValid(), );
+
+    const QString existingTranslation = ad->findFirstQualifierValue(GBFeatureUtils::QUALIFIER_TRANSLATION);
+    const U2Qualifier existingTranslQual(GBFeatureUtils::QUALIFIER_TRANSLATION, existingTranslation);
+    for (int i = 0, n = ad->qualifiers.size(); i < n; ++i) {
+        if (ad->qualifiers[i] == existingTranslQual) {
+            ad->qualifiers.remove(i);
+            break;
+        }
+    }
+    ad->qualifiers.append(translQual);
+}
+
+void FixAnnotationsUtils::fixTranslationQualifier(Annotation *an) {
+    CHECK(recalculateQualifiers, );
+
+    const U2Qualifier newTranslQual = getFixedTranslationQualifier(an->getData());
+    CHECK(newTranslQual.isValid(), );
+
+    QList<U2Qualifier> translationQuals;
+    an->findQualifiers(GBFeatureUtils::QUALIFIER_TRANSLATION, translationQuals);
+    an->removeQualifier(translationQuals.first());
+    an->addQualifier(newTranslQual);
+}
+
+U2Qualifier FixAnnotationsUtils::getFixedTranslationQualifier(const SharedAnnotationData &ad) {
+    QVector<U2Qualifier> translationQuals;
+    ad->findQualifiers(GBFeatureUtils::QUALIFIER_TRANSLATION, translationQuals);
+    CHECK(!translationQuals.empty(), U2Qualifier());
+
+    DNATranslation *aminoTranslation = GObjectUtils::findAminoTT(seqObj, false);
+    SAFE_POINT(NULL != aminoTranslation, L10N::nullPointerError("Amino translation"), U2Qualifier());
+
+    QString completeTranslation;
+    foreach (const U2Region &r, ad->getRegions()) {
+        const QByteArray annotatedData = seqObj->getSequenceData(r, *stateInfo);
+//        CHECK_OP(*stateInfo, U2Qualifier());
+
+        const DNAAlphabet *dstAlphabet = aminoTranslation->getDstAlphabet();
+        QByteArray transContent(annotatedData.size() / 3, dstAlphabet->getDefaultSymbol());
+
+        aminoTranslation->translate(annotatedData.constData(), annotatedData.length(), transContent.data(), transContent.length());
+        completeTranslation.append(transContent);
+    }
+
+    return (completeTranslation != translationQuals.first().value) ? U2Qualifier(GBFeatureUtils::QUALIFIER_TRANSLATION, completeTranslation)
+                                                                   : U2Qualifier();
+}
+
+bool FixAnnotationsUtils::isRegionValid(const U2Region &region) const {
+    return region.length > 0 && region.startPos < seqObj->getSequenceLength() - 1;
+}
+
 ModifySequenceContentTask::ModifySequenceContentTask(const DocumentFormatId &dfId, U2SequenceObject *seqObj, const U2Region &regionTodelete,
                                                      const DNASequence &seq2Insert, bool recalculateQualifiers, U1AnnotationUtils::AnnotationStrategyForResize str,
                                                      const GUrl &url, bool mergeAnnotations)
@@ -105,7 +295,9 @@ Task::ReportResult ModifySequenceContentTask::report() {
     seqObj->replaceRegion(regionToReplace, sequence2Insert, stateInfo);
     CHECK_OP(stateInfo, ReportResult_Finished);
 
-    fixAnnotations();
+    FixAnnotationsUtils fixAnnUtils(&stateInfo, seqObj, regionToReplace, sequence2Insert, recalculateQualifiers, strat, mergeAnnotations);
+    fixAnnUtils.fixAnnotations();
+//    fixAnnotations();
 
     delete userModStep;
     userModStep = NULL;
@@ -122,8 +314,6 @@ Task::ReportResult ModifySequenceContentTask::report() {
     }
     return ReportResult_Finished;
 }
-
-typedef QPair<QString, QString> QStrStrPair;
 
 namespace {
 
@@ -174,181 +364,181 @@ QString ModifySequenceContentTask::generateReport() const {
     return report;
 }
 
-U2Qualifier ModifySequenceContentTask::getFixedTranslationQualifier(const SharedAnnotationData &ad) {
-    QVector<U2Qualifier> translationQuals;
-    ad->findQualifiers(GBFeatureUtils::QUALIFIER_TRANSLATION, translationQuals);
-    CHECK(!translationQuals.empty(), U2Qualifier());
+//U2Qualifier ModifySequenceContentTask::getFixedTranslationQualifier(const SharedAnnotationData &ad) {
+//    QVector<U2Qualifier> translationQuals;
+//    ad->findQualifiers(GBFeatureUtils::QUALIFIER_TRANSLATION, translationQuals);
+//    CHECK(!translationQuals.empty(), U2Qualifier());
 
-    DNATranslation *aminoTranslation = GObjectUtils::findAminoTT(seqObj, false);
-    SAFE_POINT(NULL != aminoTranslation, L10N::nullPointerError("Amino translation"), U2Qualifier());
+//    DNATranslation *aminoTranslation = GObjectUtils::findAminoTT(seqObj, false);
+//    SAFE_POINT(NULL != aminoTranslation, L10N::nullPointerError("Amino translation"), U2Qualifier());
 
-    QString completeTranslation;
-    foreach (const U2Region &r, ad->getRegions()) {
-        const QByteArray annotatedData = seqObj->getSequenceData(r, stateInfo);
-        CHECK_OP(stateInfo, U2Qualifier());
+//    QString completeTranslation;
+//    foreach (const U2Region &r, ad->getRegions()) {
+//        const QByteArray annotatedData = seqObj->getSequenceData(r, stateInfo);
+//        CHECK_OP(stateInfo, U2Qualifier());
 
-        const DNAAlphabet *dstAlphabet = aminoTranslation->getDstAlphabet();
-        QByteArray transContent(annotatedData.size() / 3, dstAlphabet->getDefaultSymbol());
+//        const DNAAlphabet *dstAlphabet = aminoTranslation->getDstAlphabet();
+//        QByteArray transContent(annotatedData.size() / 3, dstAlphabet->getDefaultSymbol());
 
-        aminoTranslation->translate(annotatedData.constData(), annotatedData.length(), transContent.data(), transContent.length());
-        completeTranslation.append(transContent);
-    }
+//        aminoTranslation->translate(annotatedData.constData(), annotatedData.length(), transContent.data(), transContent.length());
+//        completeTranslation.append(transContent);
+//    }
 
-    return (completeTranslation != translationQuals.first().value) ? U2Qualifier(GBFeatureUtils::QUALIFIER_TRANSLATION, completeTranslation)
-                                                                   : U2Qualifier();
-}
+//    return (completeTranslation != translationQuals.first().value) ? U2Qualifier(GBFeatureUtils::QUALIFIER_TRANSLATION, completeTranslation)
+//                                                                   : U2Qualifier();
+//}
 
-void ModifySequenceContentTask::fixTranslationQualifier(SharedAnnotationData &ad) {
-    CHECK(recalculateQualifiers, );
+//void ModifySequenceContentTask::fixTranslationQualifier(SharedAnnotationData &ad) {
+//    CHECK(recalculateQualifiers, );
 
-    const U2Qualifier translQual = getFixedTranslationQualifier(ad);
-    CHECK(translQual.isValid(), );
+//    const U2Qualifier translQual = getFixedTranslationQualifier(ad);
+//    CHECK(translQual.isValid(), );
 
-    const QString existingTranslation = ad->findFirstQualifierValue(GBFeatureUtils::QUALIFIER_TRANSLATION);
-    const U2Qualifier existingTranslQual(GBFeatureUtils::QUALIFIER_TRANSLATION, existingTranslation);
-    for (int i = 0, n = ad->qualifiers.size(); i < n; ++i) {
-        if (ad->qualifiers[i] == existingTranslQual) {
-            ad->qualifiers.remove(i);
-            break;
-        }
-    }
-    ad->qualifiers.append(translQual);
-}
+//    const QString existingTranslation = ad->findFirstQualifierValue(GBFeatureUtils::QUALIFIER_TRANSLATION);
+//    const U2Qualifier existingTranslQual(GBFeatureUtils::QUALIFIER_TRANSLATION, existingTranslation);
+//    for (int i = 0, n = ad->qualifiers.size(); i < n; ++i) {
+//        if (ad->qualifiers[i] == existingTranslQual) {
+//            ad->qualifiers.remove(i);
+//            break;
+//        }
+//    }
+//    ad->qualifiers.append(translQual);
+//}
 
-void ModifySequenceContentTask::fixTranslationQualifier(Annotation *an) {
-    CHECK(recalculateQualifiers, );
+//void ModifySequenceContentTask::fixTranslationQualifier(Annotation *an) {
+//    CHECK(recalculateQualifiers, );
 
-    const U2Qualifier newTranslQual = getFixedTranslationQualifier(an->getData());
-    CHECK(newTranslQual.isValid(), );
+//    const U2Qualifier newTranslQual = getFixedTranslationQualifier(an->getData());
+//    CHECK(newTranslQual.isValid(), );
 
-    QList<U2Qualifier> translationQuals;
-    an->findQualifiers(GBFeatureUtils::QUALIFIER_TRANSLATION, translationQuals);
-    an->removeQualifier(translationQuals.first());
-    an->addQualifier(newTranslQual);
-}
+//    QList<U2Qualifier> translationQuals;
+//    an->findQualifiers(GBFeatureUtils::QUALIFIER_TRANSLATION, translationQuals);
+//    an->removeQualifier(translationQuals.first());
+//    an->addQualifier(newTranslQual);
+//}
 
-QMap<QString, QList<SharedAnnotationData> > ModifySequenceContentTask::fixAnnotation(Annotation *an, bool &annIsRemoved) {
-    QMap<QString, QList<SharedAnnotationData> > result;
-    SAFE_POINT(NULL != an, L10N::nullPointerError("Annotation"), result);
-    AnnotationTableObject *ato = an->getGObject();
-    SAFE_POINT(NULL != ato, L10N::nullPointerError("Annotation table object"), result);
+//QMap<QString, QList<SharedAnnotationData> > ModifySequenceContentTask::fixAnnotation(Annotation *an, bool &annIsRemoved) {
+//    QMap<QString, QList<SharedAnnotationData> > result;
+//    SAFE_POINT(NULL != an, L10N::nullPointerError("Annotation"), result);
+//    AnnotationTableObject *ato = an->getGObject();
+//    SAFE_POINT(NULL != ato, L10N::nullPointerError("Annotation table object"), result);
 
-    // TODO_SVEDIT: pass master id to qualifiers change?
-    QList<QVector<U2Region> > newRegions = U1AnnotationUtils::fixLocationsForReplacedRegion(regionToReplace,
-        sequence2Insert.seq.length(), an->getRegions(), strat);
+//    // TODO_SVEDIT: pass master id to qualifiers change?
+//    QList<QVector<U2Region> > newRegions = U1AnnotationUtils::fixLocationsForReplacedRegion(regionToReplace,
+//        sequence2Insert.seq.length(), an->getRegions(), strat);
 
-    if (newRegions[0].isEmpty()) {
-        annIsRemoved = true;
-    } else {
-        fixAnnotationQualifiers(an);
+//    if (newRegions[0].isEmpty()) {
+//        annIsRemoved = true;
+//    } else {
+//        fixAnnotationQualifiers(an);
 
-        an->updateRegions(newRegions[0]);
-        fixTranslationQualifier(an);
-        for (int i = 1; i < newRegions.size(); i++) {
-            SharedAnnotationData splittedAnnotation(new AnnotationData(*an->getData()));
-            const QString groupName = an->getGroup()->getGroupPath();
-            splittedAnnotation->location->regions = newRegions[i];
-            fixTranslationQualifier(splittedAnnotation);
-            result[groupName].append(splittedAnnotation);
-        }
-    }
-    return result;
-}
+//        an->updateRegions(newRegions[0]);
+//        fixTranslationQualifier(an);
+//        for (int i = 1; i < newRegions.size(); i++) {
+//            SharedAnnotationData splittedAnnotation(new AnnotationData(*an->getData()));
+//            const QString groupName = an->getGroup()->getGroupPath();
+//            splittedAnnotation->location->regions = newRegions[i];
+//            fixTranslationQualifier(splittedAnnotation);
+//            result[groupName].append(splittedAnnotation);
+//        }
+//    }
+//    return result;
+//}
 
-bool ModifySequenceContentTask::isRegionValid(const U2Region &region) const {
-    return region.length > 0 && region.startPos < seqObj->getSequenceLength() - 1;
-}
+//bool ModifySequenceContentTask::isRegionValid(const U2Region &region) const {
+//    return region.length > 0 && region.startPos < seqObj->getSequenceLength() - 1;
+//}
 
-void ModifySequenceContentTask::fixAnnotationQualifiers(Annotation *an) {
-    CHECK(recalculateQualifiers, );
+//void ModifySequenceContentTask::fixAnnotationQualifiers(Annotation *an) {
+//    CHECK(recalculateQualifiers, );
 
-    QRegExp locationMatcher("(\\d+)\\.\\.(\\d+)");
-    foreach (const U2Qualifier &qual, an->getQualifiers()) {
-        QString newQualifierValue = qual.value;
+//    QRegExp locationMatcher("(\\d+)\\.\\.(\\d+)");
+//    foreach (const U2Qualifier &qual, an->getQualifiers()) {
+//        QString newQualifierValue = qual.value;
 
-        int lastModifiedPos = 0;
-        int lastFoundPos = 0;
-        while ((lastFoundPos = locationMatcher.indexIn(qual.value, lastFoundPos)) != -1) {
-            const QString matchedRegion = locationMatcher.cap();
-            const qint64 start = locationMatcher.cap(1).toLongLong() - 1; // position starts with 0
-            const qint64 end = locationMatcher.cap(2).toLongLong() - 1;
+//        int lastModifiedPos = 0;
+//        int lastFoundPos = 0;
+//        while ((lastFoundPos = locationMatcher.indexIn(qual.value, lastFoundPos)) != -1) {
+//            const QString matchedRegion = locationMatcher.cap();
+//            const qint64 start = locationMatcher.cap(1).toLongLong() - 1; // position starts with 0
+//            const qint64 end = locationMatcher.cap(2).toLongLong() - 1;
 
-            U2Region referencedRegion(start, end - start + 1);
-            if (isRegionValid(referencedRegion)) {
-                QList<QVector<U2Region> > newRegions = U1AnnotationUtils::fixLocationsForReplacedRegion(regionToReplace,
-                    sequence2Insert.seq.length(), QVector<U2Region>() << referencedRegion, U1AnnotationUtils::AnnotationStrategyForResize_Resize);
+//            U2Region referencedRegion(start, end - start + 1);
+//            if (isRegionValid(referencedRegion)) {
+//                QList<QVector<U2Region> > newRegions = U1AnnotationUtils::fixLocationsForReplacedRegion(regionToReplace,
+//                    sequence2Insert.seq.length(), QVector<U2Region>() << referencedRegion, U1AnnotationUtils::AnnotationStrategyForResize_Resize);
 
-                if (!newRegions.isEmpty() && !newRegions[0].empty()) {
-                    QString newRegionsStr;
-                    foreach (const U2Region &region, newRegions[0]) {
-                        newRegionsStr += QString("%1..%2,").arg(region.startPos + 1).arg(region.endPos()); // position starts with 1
-                    }
-                    newRegionsStr.chop(1); // remove last comma
+//                if (!newRegions.isEmpty() && !newRegions[0].empty()) {
+//                    QString newRegionsStr;
+//                    foreach (const U2Region &region, newRegions[0]) {
+//                        newRegionsStr += QString("%1..%2,").arg(region.startPos + 1).arg(region.endPos()); // position starts with 1
+//                    }
+//                    newRegionsStr.chop(1); // remove last comma
 
-                    const int oldRegionPos = newQualifierValue.indexOf(matchedRegion, lastModifiedPos);
-                    SAFE_POINT(oldRegionPos != -1, "Unexpected region matched", );
+//                    const int oldRegionPos = newQualifierValue.indexOf(matchedRegion, lastModifiedPos);
+//                    SAFE_POINT(oldRegionPos != -1, "Unexpected region matched", );
 
-                    newQualifierValue.replace(oldRegionPos, matchedRegion.length(), newRegionsStr);
-                    lastModifiedPos = oldRegionPos + newRegionsStr.length();
-                } else {
-                    annotationForReport[an].append(QStrStrPair(qual.name, matchedRegion));
-                    if (!isReportingEnabled()) {
-                        setReportingEnabled(true);
-                    }
-                }
-            }
+//                    newQualifierValue.replace(oldRegionPos, matchedRegion.length(), newRegionsStr);
+//                    lastModifiedPos = oldRegionPos + newRegionsStr.length();
+//                } else {
+//                    annotationForReport[an].append(QStrStrPair(qual.name, matchedRegion));
+//                    if (!isReportingEnabled()) {
+//                        setReportingEnabled(true);
+//                    }
+//                }
+//            }
 
-            lastFoundPos += locationMatcher.matchedLength();
-        }
+//            lastFoundPos += locationMatcher.matchedLength();
+//        }
 
-        if (newQualifierValue != qual.value) {
-            an->removeQualifier(qual);
-            an->addQualifier(U2Qualifier(qual.name, newQualifierValue));
-        }
-    }
-}
+//        if (newQualifierValue != qual.value) {
+//            an->removeQualifier(qual);
+//            an->addQualifier(U2Qualifier(qual.name, newQualifierValue));
+//        }
+//    }
+//}
 
-void ModifySequenceContentTask::fixAnnotations() {
-    QList<GObject *> annotationTablesList;
-    if (AppContext::getProject() != NULL) {
-        annotationTablesList = GObjectUtils::findObjectsRelatedToObjectByRole(seqObj, GObjectTypes::ANNOTATION_TABLE,
-            ObjectRole_Sequence, GObjectUtils::findAllObjects(UOF_LoadedOnly, GObjectTypes::ANNOTATION_TABLE), UOF_LoadedOnly);
-    } else {
-        foreach(Document *d, docs) {
-            QList<GObject *> allAnnotationTables = d->findGObjectByType(GObjectTypes::ANNOTATION_TABLE);
-            foreach(GObject *table, allAnnotationTables) {
-                if (table->hasObjectRelation(seqObj, ObjectRole_Sequence)) {
-                    annotationTablesList.append(table);
-                }
-            }
-        }
-    }
+//void ModifySequenceContentTask::fixAnnotations() {
+//    QList<GObject *> annotationTablesList;
+//    if (AppContext::getProject() != NULL) {
+//        annotationTablesList = GObjectUtils::findObjectsRelatedToObjectByRole(seqObj, GObjectTypes::ANNOTATION_TABLE,
+//            ObjectRole_Sequence, GObjectUtils::findAllObjects(UOF_LoadedOnly, GObjectTypes::ANNOTATION_TABLE), UOF_LoadedOnly);
+//    } else {
+//        foreach(Document *d, docs) {
+//            QList<GObject *> allAnnotationTables = d->findGObjectByType(GObjectTypes::ANNOTATION_TABLE);
+//            foreach(GObject *table, allAnnotationTables) {
+//                if (table->hasObjectRelation(seqObj, ObjectRole_Sequence)) {
+//                    annotationTablesList.append(table);
+//                }
+//            }
+//        }
+//    }
 
-    foreach (GObject *table, annotationTablesList) {
-        AnnotationTableObject *ato = qobject_cast<AnnotationTableObject *>(table);
-        if (NULL != ato) {
-            QMap<QString, QList<SharedAnnotationData> > group2AnnotationsToAdd;
-            QList<Annotation *> annotationToRemove;
-            foreach(Annotation *an, ato->getAnnotations()) {
-                bool annIsToBeRemoved = false;
-                QMap<QString, QList<SharedAnnotationData> > newAnnotations = fixAnnotation(an, annIsToBeRemoved);
-                foreach (const QString &groupName, newAnnotations.keys()) {
-                    group2AnnotationsToAdd[groupName].append(newAnnotations[groupName]);
-                }
-                if (annIsToBeRemoved) {
-                    annotationToRemove.append(an);
-                }
-            }
-            foreach (const QString &groupName, group2AnnotationsToAdd.keys()) {
-                ato->addAnnotations(group2AnnotationsToAdd[groupName], groupName);
-            }
-            ato->removeAnnotations(annotationToRemove);
-        } else {
-            assert(false);
-            coreLog.error(L10N::nullPointerError("Annotation table object"));
-        }
-    }
-}
+//    foreach (GObject *table, annotationTablesList) {
+//        AnnotationTableObject *ato = qobject_cast<AnnotationTableObject *>(table);
+//        if (NULL != ato) {
+//            QMap<QString, QList<SharedAnnotationData> > group2AnnotationsToAdd;
+//            QList<Annotation *> annotationToRemove;
+//            foreach(Annotation *an, ato->getAnnotations()) {
+//                bool annIsToBeRemoved = false;
+//                QMap<QString, QList<SharedAnnotationData> > newAnnotations = fixAnnotation(an, annIsToBeRemoved);
+//                foreach (const QString &groupName, newAnnotations.keys()) {
+//                    group2AnnotationsToAdd[groupName].append(newAnnotations[groupName]);
+//                }
+//                if (annIsToBeRemoved) {
+//                    annotationToRemove.append(an);
+//                }
+//            }
+//            foreach (const QString &groupName, group2AnnotationsToAdd.keys()) {
+//                ato->addAnnotations(group2AnnotationsToAdd[groupName], groupName);
+//            }
+//            ato->removeAnnotations(annotationToRemove);
+//        } else {
+//            assert(false);
+//            coreLog.error(L10N::nullPointerError("Annotation table object"));
+//        }
+//    }
+//}
 
 void ModifySequenceContentTask::cloneSequenceAndAnnotations() {
     IOAdapterRegistry *ioReg = AppContext::getIOAdapterRegistry();

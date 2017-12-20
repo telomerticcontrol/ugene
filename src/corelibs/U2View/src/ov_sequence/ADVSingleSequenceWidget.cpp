@@ -75,6 +75,7 @@ ADVSingleSequenceWidget::ADVSingleSequenceWidget(ADVSequenceObjectContext* seqCt
     undoFWK = NULL;
     QList<AnnotationTableObject*> annTableList = ctx->getAnnotationObjects();
     undoFWK = new SequenceUndoRedoFramework(this, seqCtx->getSequenceObject(), annTableList);
+    connect(undoFWK, SIGNAL(si_updateRequired()), seqCtx->getAnnotatedDNAView(), SLOT(sl_sequenceModifyTaskStateChanged()));
 
     connect(seqCtx, SIGNAL(si_annotationObjectAdded(AnnotationTableObject*)), undoFWK, SLOT(sl_annTableAdded(AnnotationTableObject*)));
     connect(seqCtx, SIGNAL(si_annotationObjectRemoved(AnnotationTableObject*)), undoFWK, SLOT(sl_annTableRemoved(AnnotationTableObject*)));

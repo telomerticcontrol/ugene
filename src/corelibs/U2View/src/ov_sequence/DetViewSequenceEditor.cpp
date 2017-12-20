@@ -276,15 +276,24 @@ void DetViewSequenceEditor::runModifySeqTask(U2SequenceObject* seqObj, const U2R
     U1AnnotationUtils::AnnotationStrategyForResize strategy =
                 (U1AnnotationUtils::AnnotationStrategyForResize)s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_ANNOTATION_STRATEGY,
                             U1AnnotationUtils::AnnotationStrategyForResize_Resize).toInt();
-    Task* t = new ModifySequenceContentTask(seqObj->getDocument()->getDocumentFormatId(), seqObj,
-                                            region, sequence,
-                                            s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_RECALC_QUALIFIERS, false).toBool(),
-                                            strategy, seqObj->getDocument()->getURL());
-    ADVSequenceObjectContext* ctx = qobject_cast<ADVSequenceObjectContext* >(view->getSequenceContext());
-    SAFE_POINT(NULL != ctx, "Failed to cast ADVSequenceObjectContext", );
-    connect(t, SIGNAL(si_stateChanged()), ctx->getAnnotatedDNAView(), SLOT(sl_sequenceModifyTaskStateChanged()));
 
-    AppContext::getTaskScheduler()->registerTopLevelTask(t);
+    U2OpStatusImpl os;
+    U2UseCommonUserModStep userModStep(seqObj->getEntityRef(), os);
+    seqObj->replaceRegion(region, sequence, os);
+    FixAnnotationsUtils fixAnnUtils(&os, seqObj, region,
+                                    sequence, s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_RECALC_QUALIFIERS, false).toBool(), strategy);
+    fixAnnUtils.fixAnnotations();
+
+
+//    Task* t = new ModifySequenceContentTask(seqObj->getDocument()->getDocumentFormatId(), seqObj,
+//                                            region, sequence,
+//                                            s->getValue(QString(SEQ_EDIT_SETTINGS_ROOT) + SEQ_EDIT_SETTINGS_RECALC_QUALIFIERS, false).toBool(),
+//                                            strategy, seqObj->getDocument()->getURL());
+//    ADVSequenceObjectContext* ctx = qobject_cast<ADVSequenceObjectContext* >(view->getSequenceContext());
+//    SAFE_POINT(NULL != ctx, "Failed to cast ADVSequenceObjectContext", );
+//    connect(t, SIGNAL(si_stateChanged()), ctx->getAnnotatedDNAView(), SLOT(sl_sequenceModifyTaskStateChanged()));
+
+//    AppContext::getTaskScheduler()->registerTopLevelTask(t);
 }
 
 void DetViewSequenceEditor::sl_editMode(bool active) {
