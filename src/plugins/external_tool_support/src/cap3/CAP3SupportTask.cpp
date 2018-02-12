@@ -182,7 +182,10 @@ int CAP3LogParser::getProgress() {
 ////PrepareInput
 
 PrepareInputForCAP3Task::PrepareInputForCAP3Task( const QStringList& inputFiles, const QString& outputDirPath)
-:Task("PrepareInputForCAP3Task", TaskFlags_FOSCOE), inputUrls(inputFiles), outputDir(outputDirPath), onlyCopyFiles(false)
+    :Task("PrepareInputForCAP3Task", TaskFlags_FOSCOE),
+      inputUrls(inputFiles),
+      outputDir(outputDirPath),
+      onlyCopyFiles(false)
 {
 }
 
@@ -204,7 +207,7 @@ void PrepareInputForCAP3Task::prepare() {
         // Short path: copy single FASTA file along with quality and constraints to target dir
         QString inputFileUrl = inputUrls.first();
         filesToCopy.append(inputFileUrl);
-        QString inputFileUrlBase = GUrl(inputFileUrl).baseFileName();
+        QString inputFileUrlBase = GUrl(inputFileUrl).fileName();
         QString inputFileDir = GUrl(inputFileUrl).dirPath();
         QString qualFileUrl = inputFileDir + "/" + inputFileUrlBase + ".qual";
         if (QFile::exists(qualFileUrl)) {
@@ -234,7 +237,7 @@ void PrepareInputForCAP3Task::prepare() {
             return;
         }
 
-        QString outPath = outputDir + "/" + QString("%1_misc").arg(inputGUrls.first().baseFileName());
+        QString outPath = outputDir + "/" + QString("%1_misc").arg(inputGUrls.first().fileName());
         qualityFilePath = outPath + ".qual";
 
         if (!seqWriter.init(outPath + ".fa")) {
