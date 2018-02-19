@@ -566,6 +566,11 @@ bool MultipleChromatogramAlignmentRowData::isComplemented() const {
     return MultipleAlignmentRowInfo::getComplemented(additionalInfo);
 }
 
+void MultipleChromatogramAlignmentRowData::setReverseComplement(bool isRevCompl) {
+    MultipleAlignmentRowInfo::setReversed(additionalInfo, isRevCompl);
+    MultipleAlignmentRowInfo::setComplemented(additionalInfo, isRevCompl);
+}
+
 void MultipleChromatogramAlignmentRowData::splitBytesToCharsAndGaps(const QByteArray &input, QByteArray &seqBytes, QList<U2MsaGap> &gapsModel) {
     MaDbiUtils::splitBytesToCharsAndGaps(input, seqBytes, gapsModel);
 }

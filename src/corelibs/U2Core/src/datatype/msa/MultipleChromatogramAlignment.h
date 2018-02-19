@@ -171,9 +171,9 @@ public:
      * Can increase the overall alignment length.
      */
     void addRow(const QString &name, const DNAChromatogram &chromatogram, const QByteArray &bytes);
-    void addRow(const QString &name, const DNAChromatogram &chromatogram, const QByteArray &bytes, int rowIndex);
+    void addRow(const QString &name, const DNAChromatogram &chromatogram, const QByteArray &bytes, int rowIndex, bool markRevCompl = false);
     void addRow(const U2MsaRow &rowInDb, const DNAChromatogram &chromatogram, const DNASequence &sequence, U2OpStatus &os);
-    void addRow(const QString &name, const DNAChromatogram &chromatogram, const DNASequence &sequence, const U2MsaRowGapModel &gaps, U2OpStatus &os);
+    void addRow(const QString &name, const DNAChromatogram &chromatogram, const DNASequence &sequence, const U2MsaRowGapModel &gaps, U2OpStatus &os, bool markRevCompl = false);
     void addRow(const U2MsaRow &rowInDb, const McaRowMemoryData &mcaRowMemoryData, U2OpStatus &os);
 
     /**

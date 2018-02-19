@@ -241,6 +241,8 @@ public:
     bool isReversed() const;
     bool isComplemented() const;
 
+    void setReverseComplement(bool isRevCompl);
+
 private:
     /** Splits input to sequence bytes and gaps model */
     static void splitBytesToCharsAndGaps(const QByteArray &input, QByteArray &seqBytes, QList<U2MsaGap> &gapModel);

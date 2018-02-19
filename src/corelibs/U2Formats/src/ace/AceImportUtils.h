@@ -28,7 +28,7 @@
 
 namespace U2 {
 
-class Assembly {
+class U2FORMATS_EXPORT Assembly {
 public:
     class Sequence {   // it is consensus in the ACE format specification
     public:
@@ -48,6 +48,7 @@ public:
     void setReference(const Sequence &reference);
 
     QList<U2AssemblyRead> getReads() const;
+    QList<Sequence> getInitialSequences() const { return reads; }
     int getReadsCount() const;
     void addRead(const Sequence &read);
     void setReads(const QList<Sequence> &reads);
@@ -65,7 +66,7 @@ private:
     QByteArray name;
 };
 
-class AceReader {
+class U2FORMATS_EXPORT AceReader {
 public:
     AceReader(IOAdapter &io, U2OpStatus &os);
 
@@ -117,7 +118,7 @@ private:
     static const QByteArray UNCOMPLEMENT;
 };
 
-class AceIterator {
+class U2FORMATS_EXPORT AceIterator {
 public:
     AceIterator(AceReader &reader, U2OpStatus &os);
 

@@ -24,6 +24,7 @@
 
 #include <QVariantMap>
 
+#include "DNAChromatogram.h"
 #include "DNAInfo.h"
 #include "DNAQuality.h"
 
@@ -49,6 +50,9 @@ public:
     bool hasQualityScores() const {return (!quality.isEmpty()); }
     const char* constData() const {return seq.constData();}
     const QByteArray &constSequence() const {return seq;}
+
+    // TODO: use the pointer
+    DNAChromatogram chromatogram;
 };
 
 }//namespace

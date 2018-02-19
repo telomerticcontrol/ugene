@@ -21,6 +21,7 @@
 
 #include "CAP3SupportTask.h"
 #include "CAP3Support.h"
+#include "SangerFromAceMakerTask.h"
 
 #include <U2Core/AppContext.h>
 #include <U2Core/AddDocumentTask.h>
@@ -81,6 +82,7 @@ QList<Task*> CAP3SupportTask::onSubTaskFinished(Task* subTask) {
     if (subTask == prepareDataForCAP3Task) {
         assert(!prepareDataForCAP3Task->getPreparedPath().isEmpty());
         GUrl inputUrl = prepareDataForCAP3Task->getPreparedPath();
+        chromMap = prepareDataForCAP3Task->getChromMap();
         tmpOutputUrl = inputUrl.getURLString()+ CAP3_EXT;
 
         QStringList arguments = settings.getArgumentsList();
@@ -113,6 +115,10 @@ QList<Task*> CAP3SupportTask::onSubTaskFinished(Task* subTask) {
             return res;
         }
         outputFile = settings.outputFilePath;
+        // TODO: temporary save ugenedb nearby ACE-file, change within UGENE-5991
+        GUrl ugenedbOutput(outputFile + ".ugenedb");
+        SangerFromAceMakerTask* task = new SangerFromAceMakerTask(outputFile, chromMap, ugenedbOutput);
+        res.append(task);
     }
     return res;
 }
@@ -265,6 +271,9 @@ void PrepareInputForCAP3Task::run()
         // avoid names duplication
         QByteArray seqName = seq->getName().toLatin1();
         seqName.replace(' ','_');
+        if (seq->chromatogram.seqLength != 0) { // TODO: null-check in case of pointers
+            chromMap.insert(seqName, seq->chromatogram);
+        }
         seq->setName(seqName);
         bool ok = seqWriter.writeNextSequence(*seq);
         if (!ok) {

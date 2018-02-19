@@ -112,9 +112,7 @@ DNASequence *ABIFormat::loadSequence(IOAdapter *io, U2OpStatus &os)
     sf.size = readBuff.size();
 
     DNASequence* seq = new DNASequence();
-    DNAChromatogram cd;
-
-    if (!loadABIObjects(&sf, (*seq), cd)) {
+    if (!loadABIObjects(&sf, (*seq), seq->chromatogram)) {
         os.setError(tr("Failed to load sequence from ABI file %1").arg(io->toString()));
     }
 

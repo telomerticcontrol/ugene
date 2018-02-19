@@ -105,14 +105,19 @@ public:
     void run();
     bool onlyCopyInputFiles() { return onlyCopyFiles; }
     const QString& getPreparedPath() { return preparedPath; }
+
+    QMap<QString, DNAChromatogram> getChromMap() const { return chromMap; }
 private:
-    QList<CopyDataTask*> copyTasks;
-    QStringList inputUrls;
-    QStringList filesToCopy;
-    StreamSequenceReader seqReader;
-    StreamShortReadWriter seqWriter;
-    QString outputDir, preparedPath, qualityFilePath;
-    bool onlyCopyFiles;
+    QList<CopyDataTask*>            copyTasks;
+    QStringList                     inputUrls;
+    QStringList                     filesToCopy;
+    StreamSequenceReader            seqReader;
+    StreamShortReadWriter           seqWriter;
+    QString                         outputDir;
+    QString                         preparedPath;
+    QString                         qualityFilePath;
+    bool                            onlyCopyFiles;
+    QMap<QString, DNAChromatogram>  chromMap;
 };
 
 
@@ -132,13 +137,14 @@ public:
     QList<Task*> onSubTaskFinished(Task* subTask);
 
 private:
-    QString                     tmpDirUrl;
-    QString                     tmpOutputUrl;
-    PrepareInputForCAP3Task*    prepareDataForCAP3Task;
-    ExternalToolRunTask*        cap3Task;
-    CopyDataTask*               copyResultTask;
-    CAP3SupportTaskSettings     settings;
-    QString                     outputFile;
+    QString                         tmpDirUrl;
+    QString                         tmpOutputUrl;
+    PrepareInputForCAP3Task*        prepareDataForCAP3Task;
+    ExternalToolRunTask*            cap3Task;
+    CopyDataTask*                   copyResultTask;
+    CAP3SupportTaskSettings         settings;
+    QString                         outputFile;
+    QMap<QString, DNAChromatogram>  chromMap;
 };
 
 class RunCap3AndOpenResultTask : public Task {

@@ -519,8 +519,7 @@ Document* SCFFormat::parseSCF(const U2DbiRef& dbiRef, IOAdapter* io, const QVari
     Q_UNUSED(opBlock);
 
     DNASequence dna;
-    DNAChromatogram cd;
-    if (!loadSCFObjects(io, dna, cd, os)) {
+    if (!loadSCFObjects(io, dna, dna.chromatogram, os)) {
         return NULL;
     }
 
@@ -535,7 +534,7 @@ Document* SCFFormat::parseSCF(const U2DbiRef& dbiRef, IOAdapter* io, const QVari
     seqObj->setQuality(dna.quality);
 
     const QString chromaObjName = dna.getName().isEmpty() ? "Chromatogram" : dna.getName() + " chromatogram";
-    DNAChromatogramObject* chromObj = DNAChromatogramObject::createInstance(cd, chromaObjName, dbiRef, os, hints);
+    DNAChromatogramObject* chromObj = DNAChromatogramObject::createInstance(dna.chromatogram, chromaObjName, dbiRef, os, hints);
     CHECK_OP(os, NULL);
 
     QList<GObject*> objects;

@@ -63,6 +63,7 @@ HEADERS += src/ETSProjectViewItemsContoller.h \
            src/cap3/CAP3SupportDialog.h \
            src/cap3/CAP3SupportTask.h \
            src/cap3/CAP3Worker.h \
+           src/cap3/SangerFromAceMakerTask.h \
            src/ceas/CEASReportWorker.h \
            src/ceas/CEASSettings.h \
            src/ceas/CEASSupport.h \
@@ -278,6 +279,7 @@ SOURCES += src/ETSProjectViewItemsContoller.cpp \
            src/cap3/CAP3SupportDialog.cpp \
            src/cap3/CAP3SupportTask.cpp \
            src/cap3/CAP3Worker.cpp \
+           src/cap3/SangerFromAceMakerTask.cpp \
            src/ceas/CEASReportWorker.cpp \
            src/ceas/CEASSettings.cpp \
            src/ceas/CEASSupport.cpp \

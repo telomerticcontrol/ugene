@@ -352,8 +352,9 @@ void MultipleChromatogramAlignmentData::addRow(const QString &name, const DNAChr
     addRowPrivate(newRow, bytes.size(), -1);
 }
 
-void MultipleChromatogramAlignmentData::addRow(const QString &name, const DNAChromatogram &chromatogram, const QByteArray &bytes, int rowIndex) {
+void MultipleChromatogramAlignmentData::addRow(const QString &name, const DNAChromatogram &chromatogram, const QByteArray &bytes, int rowIndex, bool markRevCompl) {
     MultipleChromatogramAlignmentRow newRow = createRow(name, chromatogram, bytes);
+    newRow->setReverseComplement(markRevCompl);
     addRowPrivate(newRow, bytes.size(), rowIndex);
 }
 
@@ -363,9 +364,11 @@ void MultipleChromatogramAlignmentData::addRow(const U2MsaRow &rowInDb, const DN
     addRowPrivate(newRow, rowInDb.length, -1);
 }
 
-void MultipleChromatogramAlignmentData::addRow(const QString &name, const DNAChromatogram &chromatogram, const DNASequence &sequence, const U2MsaRowGapModel &gaps, U2OpStatus &os) {
+void MultipleChromatogramAlignmentData::addRow(const QString &name, const DNAChromatogram &chromatogram,
+                                               const DNASequence &sequence, const U2MsaRowGapModel &gaps, U2OpStatus &os, bool markRevCompl) {
     U2MsaRow row;
     MultipleChromatogramAlignmentRow newRow = createRow(row, chromatogram, sequence, gaps, os);
+    newRow->setReverseComplement(markRevCompl);
     CHECK_OP(os, );
 
     int len = sequence.length();
