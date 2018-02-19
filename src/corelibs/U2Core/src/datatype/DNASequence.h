@@ -37,11 +37,12 @@ public:
     DNASequence(const QString& name, const QByteArray& s = QByteArray(), const DNAAlphabet* a = NULL);
     DNASequence(const QByteArray& s = QByteArray(), const DNAAlphabet* a = NULL);
 
-    QVariantMap     info;
-    QByteArray      seq;
-    const DNAAlphabet*    alphabet;
-    bool            circular;
-    DNAQuality      quality;
+    QVariantMap         info;
+    QByteArray          seq;
+    const DNAAlphabet*  alphabet;
+    bool                circular;
+    DNAQuality          quality;
+    DNAChromatogram     chromatogram;
 
     QString getName() const { return DNAInfo::getName(info);}
     void setName(const QString& name);
@@ -51,8 +52,6 @@ public:
     const char* constData() const {return seq.constData();}
     const QByteArray &constSequence() const {return seq;}
 
-    // TODO: use the pointer
-    DNAChromatogram chromatogram;
 };
 
 }//namespace

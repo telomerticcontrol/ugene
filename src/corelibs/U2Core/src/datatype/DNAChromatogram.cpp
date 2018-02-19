@@ -37,6 +37,10 @@ DNAChromatogram::DNAChromatogram()
 
 }
 
+bool DNAChromatogram::isEmpty() {
+    return traceLength == 0;
+}
+
 ushort DNAChromatogram::getValue(Trace trace, qint64 position) const {
     SAFE_POINT(0 <= position && position <= traceLength, "The position is out of trace boundaries", 0);
     switch (trace) {

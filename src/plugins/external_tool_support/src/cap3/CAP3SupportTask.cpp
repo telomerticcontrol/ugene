@@ -21,7 +21,7 @@
 
 #include "CAP3SupportTask.h"
 #include "CAP3Support.h"
-#include "SangerFromAceMakerTask.h"
+#include "AddChromatogramToAceDataTask.h"
 
 #include <U2Core/AppContext.h>
 #include <U2Core/AddDocumentTask.h>
@@ -40,6 +40,8 @@
 #include <U2Formats/DNAQualityIOUtils.h>
 
 #include <U2Gui/OpenViewTask.h>
+
+#include <QFileInfo>
 
 namespace U2 {
 
@@ -117,8 +119,10 @@ QList<Task*> CAP3SupportTask::onSubTaskFinished(Task* subTask) {
         outputFile = settings.outputFilePath;
         // TODO: temporary save ugenedb nearby ACE-file, change within UGENE-5991
         GUrl ugenedbOutput(outputFile + ".ugenedb");
-        SangerFromAceMakerTask* task = new SangerFromAceMakerTask(outputFile, chromMap, ugenedbOutput);
+        AddChromatogramToAceDataTask* task = new AddChromatogramToAceDataTask(outputFile, chromMap, ugenedbOutput);
         res.append(task);
+    } else if (qobject_cast<AddChromatogramToAceDataTask*>(subTask) != NULL && QFileInfo(outputFile + ".ugenedb").exists()) {
+        outputFile += ".ugenedb";
     }
     return res;
 }
@@ -271,7 +275,7 @@ void PrepareInputForCAP3Task::run()
         // avoid names duplication
         QByteArray seqName = seq->getName().toLatin1();
         seqName.replace(' ','_');
-        if (seq->chromatogram.seqLength != 0) { // TODO: null-check in case of pointers
+        if (!seq->chromatogram.isEmpty()) {
             chromMap.insert(seqName, seq->chromatogram);
         }
         seq->setName(seqName);

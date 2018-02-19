@@ -19,9 +19,8 @@
  * MA 02110-1301, USA.
  */
 
-// TODO: rename
-#ifndef SANGERFROMACEMAKERTASK_H
-#define SANGERFROMACEMAKERTASK_H
+#ifndef _U2_ADD_CHROMATOGRAM_TO_ACE_DATA_TASK_H_
+#define _U2_ADD_CHROMATOGRAM_TO_ACE_DATA_TASK_H_
 
 #include <U2Core/DNAChromatogram.h>
 #include <U2Core/GUrl.h>
@@ -30,10 +29,10 @@
 
 namespace U2 {
 
-class U2FORMATS_EXPORT SangerFromAceMakerTask : public Task {
+class U2FORMATS_EXPORT AddChromatogramToAceDataTask : public Task {
     Q_OBJECT
 public:
-    SangerFromAceMakerTask(const GUrl& aceFile, const QMap<QString, DNAChromatogram>& chromMap,
+    AddChromatogramToAceDataTask(const GUrl& aceFile, const QMap<QString, DNAChromatogram>& chromMap,
                            const GUrl& outputFile);
     void run();
 private:
@@ -44,4 +43,4 @@ private:
 
 } // namespace
 
-#endif // SANGERFROMACEMAKERTASK_H
+#endif // _U2_ADD_CHROMATOGRAM_TO_ACE_DATA_TASK_H_

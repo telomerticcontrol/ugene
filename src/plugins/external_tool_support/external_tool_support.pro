@@ -59,11 +59,11 @@ HEADERS += src/ETSProjectViewItemsContoller.h \
            src/bwa/BwaTask.h \
            src/bwa/BwaMemWorker.h \
            src/bwa/BwaWorker.h \
+           src/cap3/AddChromatogramToAceDataTask.h \
            src/cap3/CAP3Support.h \
            src/cap3/CAP3SupportDialog.h \
            src/cap3/CAP3SupportTask.h \
            src/cap3/CAP3Worker.h \
-           src/cap3/SangerFromAceMakerTask.h \
            src/ceas/CEASReportWorker.h \
            src/ceas/CEASSettings.h \
            src/ceas/CEASSupport.h \
@@ -275,11 +275,11 @@ SOURCES += src/ETSProjectViewItemsContoller.cpp \
            src/bwa/BwaTask.cpp \
            src/bwa/BwaMemWorker.cpp \
            src/bwa/BwaWorker.cpp \
+           src/cap3/AddChromatogramToAceDataTask.cpp \
            src/cap3/CAP3Support.cpp \
            src/cap3/CAP3SupportDialog.cpp \
            src/cap3/CAP3SupportTask.cpp \
            src/cap3/CAP3Worker.cpp \
-           src/cap3/SangerFromAceMakerTask.cpp \
            src/ceas/CEASReportWorker.cpp \
            src/ceas/CEASSettings.cpp \
            src/ceas/CEASSupport.cpp \

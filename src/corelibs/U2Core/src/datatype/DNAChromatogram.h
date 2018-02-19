@@ -37,6 +37,7 @@ public:
     };
 
     DNAChromatogram();
+    bool isEmpty();
 
     QString name;
     int traceLength;
