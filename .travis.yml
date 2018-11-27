@@ -10,5 +10,6 @@ install:
   - sudo apt-get install libxtst-dev
 
 script:
+  - qmake --version
   - qmake ugene.pro CONFIG+=x64 UGENE_EXCLUDE_LIST_ENABLED=1 UGENE_USE_BUNDLED_ZLIB=0
   - make -j 3 | sed -n 'p;n;n;n;n;'
