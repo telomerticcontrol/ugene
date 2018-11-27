@@ -15,7 +15,8 @@ install:
   - sudo apt-get install -qq g++-6
 
   # Qt5
-  - yes | sudo apt-get install --yes qt54base qt54imageformats libqt5webkit5-dev qt54svg qtdeclarative5-dev
+  - sudo apt-get install qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev libqt5svg5-dev
+  - sudo apt-get install qt5-default qttools5-dev-tools qtscript5-dev
 
 
 env: CXX="g++-6" CXXFLAGS="-std=c++11 -Wall -Wno-error"
