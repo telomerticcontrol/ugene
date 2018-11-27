@@ -3,10 +3,10 @@ dist: trusty
 
 install:
   - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
-  - sudo add-apt-repository --yes ppa:canonical-qt54-edgers/qt54-proper
+  - sudo add-apt-repository --yes ppa:canonical-qt5-edgers/qt5-proper
   - sudo apt-get update -qq
-  - sudo apt-get install qtbase54-dev qtdeclarative54-dev libqt5webkit54-dev libsqlite54-dev libqt5svg54-dev
-  - sudo apt-get install qt54-default qttools54-dev-tools qtscript54-dev
+  - sudo apt-get install qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev libqt5svg5-dev
+  - sudo apt-get install qt5-default qttools5-dev-tools qtscript5-dev
   - sudo apt-get install libxtst-dev
   - export QMAKE=/usr/lib/x86_64-linux-gnu/qt5/bin/qmake
 
