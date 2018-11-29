@@ -3,27 +3,29 @@ dist: trusty
 
 before_install:
   # g++6
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  #- sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
   # Qt5
-  - sudo apt-add-repository --yes ppa:beineri/opt-qt542-trusty
-  - sudo apt-get -qq update
+  - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
+  - sudo apt-get update -qq
+  - sudo apt-get install qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev
+  - sudo apt-get install qt5-default qttools5-dev-tools
 
 
 install:
   # g++6
 
   # Qt5
-  - sudo apt-get update
-  - sudo apt-get install qt54base qt54imageformats libqt5webkit5-dev qt54svg qtdeclarative5-dev
-  - sudo apt-get install qtwebengine5-dev
+  #- sudo apt-get update
+  #- sudo apt-get install qt54base qt54imageformats libqt5webkit5-dev qt54svg qtdeclarative5-dev
+  #- sudo apt-get install qtwebengine5-dev
 
 
-env: CXX="g++-6" CXXFLAGS="-std=c++11 -Wall -Wno-error"
+#env: CXX="g++-6" CXXFLAGS="-std=c++11 -Wall -Wno-error"
 
-before_script:
-    - QTDIR="/opt/qt54"
-    - PATH="$QTDIR/bin:$PATH"
+#before_script:
+    #- QTDIR="/opt/qt54"
+    #- PATH="$QTDIR/bin:$PATH"
 
 script:
   - qmake --version
