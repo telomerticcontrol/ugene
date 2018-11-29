@@ -53,9 +53,9 @@
 
 namespace U2 {
 
-GUITestLauncher::GUITestLauncher(int _suiteNumber, bool _noIgnored)
+GUITestLauncher::GUITestLauncher(int _suiteNumber, bool _noIgnored, QString _iniFileTemplate)
     : Task("gui_test_launcher", TaskFlags(TaskFlag_ReportingIsSupported) | TaskFlag_ReportingIsEnabled),
-      suiteNumber(_suiteNumber), noIgnored(_noIgnored), pathToSuite("") {
+      suiteNumber(_suiteNumber), noIgnored(_noIgnored), pathToSuite(""), iniFileTemplate(_iniFileTemplate) {
 
     tpm = Task::Progress_Manual;
     testOutDir = getTestOutDir();
@@ -66,9 +66,9 @@ GUITestLauncher::GUITestLauncher(int _suiteNumber, bool _noIgnored)
     }
 }
 
-GUITestLauncher::GUITestLauncher(QString _pathToSuite, bool _noIgnored)
+GUITestLauncher::GUITestLauncher(QString _pathToSuite, bool _noIgnored, QString _iniFileTemplate)
     : Task("gui_test_launcher", TaskFlags(TaskFlag_ReportingIsSupported) | TaskFlag_ReportingIsEnabled),
-      suiteNumber(0), noIgnored(_noIgnored), pathToSuite(_pathToSuite) {
+      suiteNumber(0), noIgnored(_noIgnored), pathToSuite(_pathToSuite), iniFileTemplate(_iniFileTemplate) {
 
     tpm = Task::Progress_Manual;
     testOutDir = getTestOutDir();
@@ -226,6 +226,8 @@ QProcessEnvironment GUITestLauncher::getProcessEnvironment(QString testName) {
     env.insert(ENV_USE_NATIVE_DIALOGS, "0");
     env.insert(U2_PRINT_TO_FILE, testOutDir + "/logs/" + testOutFile(testName));
     env.insert(U2_USER_INI, testOutDir + "/inis/" + testName.replace(':', '_') + "_UGENE.ini");
+    env.insert(U2_USER_INI, "/home/ichebyki/.config/Unipro/UGENED.ini");
+    Settings *settings = AppContext::getSettings();
 
     return env;
 }
