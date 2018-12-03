@@ -83,6 +83,7 @@
 #include "../../workflow_designer/src/WorkflowViewItems.h"
 #include "runnables/ugene/corelibs/U2Gui/AppSettingsDialogFiller.h"
 #include "runnables/ugene/corelibs/U2Gui/DownloadRemoteFileDialogFiller.h"
+#include "runnables/ugene/corelibs/U2Gui/EditAnnotationDialogFiller.h"
 #include "runnables/ugene/corelibs/U2Gui/EditSettingsDialogFiller.h"
 #include "runnables/ugene/corelibs/U2Gui/ImportAPRFileDialogFiller.h"
 #include "runnables/ugene/corelibs/U2View/ov_msa/ExtractSelectedAsMSADialogFiller.h"
@@ -986,18 +987,11 @@ GUI_TEST_CLASS_DEFINITION(test_6167) {
 
     //Expected: There are no adapter files in the output directory
     QDir sandbox(sandBoxDir);
-    QStringList sandboxEntry = sandbox.entryList(QDir::AllEntries);
-    QRegExp rx("????.??.??_??-??");
-    rx.setPatternSyntax(QRegExp::Wildcard);
-    QString entry;
-    foreach(const QString folder, sandboxEntry) {
-        CHECK_CONTINUE(rx.exactMatch(folder));
-        entry = folder;
-        break;
-    }
-    CHECK_SET_ERR(!entry.isEmpty(), "The output folder is lost");
+    QStringList filter = QStringList() << "????.??.??_??-??";
+    QStringList sandboxEntry = sandbox.entryList(filter, QDir::AllEntries);
+    CHECK_SET_ERR(sandboxEntry.size() == 1, QString("Unexpected nomber of folders, expected: 1, current62: %1").arg(sandboxEntry.size()));
 
-    QString insideSandbox(sandBoxDir + entry);
+    QString insideSandbox(sandBoxDir + sandboxEntry.first());
     QDir insideSandboxDir(insideSandbox);
     QStringList resultDirs = insideSandboxDir.entryList();
     CHECK_SET_ERR(resultDirs.size() == 5, QString("Unexpected number of result folders, expected: 5, current: %1").arg(resultDirs.size()));
@@ -1016,11 +1010,11 @@ GUI_TEST_CLASS_DEFINITION(test_6204) {
     GTUtilsWorkflowDesigner::addInputFile(os, "Read Alignment", testDir + "_common_data/clustal/COI na.aln");
     GTUtilsWorkflowDesigner::runWorkflow(os);
 
-    GTGlobals::sleep(55000);
-    //GTGlobals::sleep();
-    HI::HIWebElement el = GTUtilsDashboard::findElement(os, "The workflow task is in progress...");
+    // There is no message "Task is in progress.." after finished task where 2 notifications are present
+    GTUtilsTaskTreeView::waitTaskFinished(os);
+    GTGlobals::sleep(100);
+    HI::HIWebElement el = GTUtilsDashboard::findElement(os, "The workflow task has been finished");
     CHECK_SET_ERR(el.geometry() != QRect(), QString("Element with desired text not found"));
-    GTUtilsWorkflowDesigner::stopWorkflow(os);
 }
 
 GUI_TEST_CLASS_DEFINITION(test_6212) {
@@ -1457,12 +1451,41 @@ GUI_TEST_CLASS_DEFINITION(test_6236) {
     CHECK_SET_ERR(desiredMessage, "No expected message in the log");
 }
 
-GUI_TEST_CLASS_DEFINITION(test_6238) {
+GUI_TEST_CLASS_DEFINITION(test_6238_1) {
     //1. Open _common_data/regression/6238/6238.fastq on macOS
     //Expected: it wasn't opened, the notification "The problem appeared during the data reading. Please, make sure that all input data are correct" appeared
-    GTUtilsNotifications::waitForNotification(os, true, "The problem appeared during the data reading. Please, make sure that all input data are correct");
+    GTUtilsNotifications::waitForNotification(os, true, "The text file can't be read. Check the file encoding and make sure the file is not corrupted");
     GTUtilsProject::openMultiSequenceFileAsSequences(os, testDir + "_common_data/regression/6238/6238.fastq");
     GTUtilsTaskTreeView::waitTaskFinished(os);
+}
+
+GUI_TEST_CLASS_DEFINITION(test_6238_2) {
+    QString fastqFile = dataDir + "samples/FASTQ/eas.fastq";
+    QString sandboxFastqFile = sandBoxDir + "eas.fastq";
+    QString badFastqFile = testDir + "_common_data/regression/6238/6238.fastq";
+    //1. Open "data/samples/FASTQ/eas.fastq".
+    GTFile::copy(os, fastqFile, sandboxFastqFile);
+
+    GTUtilsProject::openMultiSequenceFileAsSequences(os, sandboxFastqFile);
+    GTUtilsTaskTreeView::waitTaskFinished(os);
+
+    //2. Open the file in some external text editor.
+    QFile file(sandboxFastqFile);
+    QFile badFile(badFastqFile);
+    file.open(QFile::ReadWrite);
+    badFile.open(QFile::ReadOnly);
+
+    //3. Replace the file content with the content if the file "_common_data/regression/6238/6238.fastq".
+    //Expected state : UGENE offers to reload the modified file.
+    //4. Accept the offering.
+    //Expected state: the file reloading failed, an error notification appeared, there are error messages in the log.
+    GTUtilsDialog::waitForDialog(os, new MessageBoxDialogFiller(os, QMessageBox::YesAll));
+    GTUtilsNotifications::waitForNotification(os, false, "The text file can't be read. Check the file encoding and make sure the file is not corrupted");
+    QByteArray badData = badFile.readAll();
+    file.write(badData);
+    file.close();
+    badFile.close();
+    GTGlobals::sleep(10000);
 }
 
 GUI_TEST_CLASS_DEFINITION(test_6240) {
@@ -1643,6 +1666,86 @@ GUI_TEST_CLASS_DEFINITION(test_6249_3) {
     CHECK_SET_ERR(outFiles.contains("chrM_fastqc.html"), QString("Output files not contains desired file chrM_fastqc.html"));
     CHECK_SET_ERR(outFiles.contains("eas_fastqc_1.html"), QString("Output files not contains desired file eas_fastqc_1.html"));
     CHECK_SET_ERR(outFiles.contains("chrM_fastqc_1.html"), QString("Output files not contains desired file chrM_fastqc_1.html"));
+}
+
+GUI_TEST_CLASS_DEFINITION(test_6256) {
+    //1. Open WD
+    GTUtilsWorkflowDesigner::openWorkflowDesigner(os);
+    QString tempDir = QDir(sandBoxDir + "test_6256").absolutePath();
+
+    class Custom : public CustomScenario {
+        void run(HI::GUITestOpStatus &os) {
+            AppSettingsDialogFiller::openTab(os, AppSettingsDialogFiller::WorkflowDesigner);
+            QWidget *dialog = QApplication::activeModalWidget();
+            QDir().mkpath(tempDir);
+            GTFile::setReadOnly(os, tempDir);
+            GTLineEdit::setText(os, GTWidget::findExactWidget<QLineEdit *>(os, "workflowOutputEdit", dialog), tempDir);
+            GTUtilsDialog::clickButtonBox(os, dialog, QDialogButtonBox::Ok);
+        }
+    public:
+        QString tempDir;
+    };
+    //2. Open application settings and change workflow output directory to nonexistent path
+    Custom* c = new Custom();
+    c->tempDir = tempDir;
+    GTUtilsDialog::waitForDialog(os, new AppSettingsDialogFiller(os, c));
+    GTMenu::clickMainMenuItem(os, QStringList() << "Settings" << "Preferences...", GTGlobals::UseMouse);
+    //3. Add "Read File URL" element and validate workflow
+    //Expected state: there are 2 erorrs after validation
+    GTUtilsWorkflowDesigner::addElement(os, "Read File URL(s)", true);
+    GTUtilsWorkflowDesigner::validateWorkflow(os);
+    GTGlobals::sleep(1000);
+    GTKeyboardDriver::keyClick(Qt::Key_Enter);
+    GTGlobals::sleep(1000);
+    GTFile::setReadWrite(os, tempDir);
+
+    CHECK_SET_ERR(GTUtilsWorkflowDesigner::getErrors(os).size() == 2, "Unexpected number of errors");
+}
+
+GUI_TEST_CLASS_DEFINITION(test_6279) {
+    class Custom : public CustomScenario {
+    public:
+        virtual void run(HI::GUITestOpStatus &os) {
+            QWidget *dialog = QApplication::activeModalWidget();
+            CHECK_SET_ERR(dialog != NULL, "dialog not found");
+
+            QLineEdit *lineEdit = dialog->findChild<QLineEdit*>("leAnnotationName");
+            CHECK_SET_ERR(lineEdit != NULL, "line edit leAnnotationName not found");
+
+            QRadioButton* gbFormatLocation = dialog->findChild<QRadioButton*>("rbGenbankFormat");
+            CHECK_SET_ERR(gbFormatLocation != NULL, "radio button rbGenbankFormat not found");
+
+            QLineEdit *lineEdit1 = dialog->findChild<QLineEdit*>("leLocation");
+            CHECK_SET_ERR(lineEdit != NULL, "line edit leLocation not found");
+
+            GTUtilsDialog::clickButtonBox(os, dialog, QDialogButtonBox::Ok);
+        }
+    };
+    //1. Open murine.gb
+    GTFileDialog::openFile(os, dataDir + "samples/Genbank/murine.gb");
+    GTUtilsTaskTreeView::waitTaskFinished(os);
+    //2. Click CDS annotation on pan view
+    GTUtilsSequenceView::clickAnnotationPan(os, "CDS", 2970, 0, true);
+    //3. Press F2 to open Edit annotation dialog
+    GTUtilsDialog::waitForDialog(os, new EditAnnotationFiller(os, new Custom()));
+    GTKeyboardDriver::keyClick(Qt::Key_F2);
+    GTGlobals::sleep(1000);
+}
+
+GUI_TEST_CLASS_DEFINITION(test_6291) {
+    //1. Open murine.gb
+    GTFileDialog::openFile(os, dataDir + "samples/Genbank/murine.gb");
+    GTUtilsTaskTreeView::waitTaskFinished(os);
+    //2. Click CDS annotation on pan view
+    //GTUtilsSequenceView::clickAnnotationPan(os, "CDS", 2970, 0, true);
+    //3. Select qualifier
+    QString qValue = GTUtilsAnnotationsTreeView::getQualifierValue(os, "product", GTUtilsAnnotationsTreeView::findItem(os, "CDS"));
+    //QTreeWidgetItem *item = GTUtilsAnnotationsTreeView::findItem(os, "db_xref");
+    GTUtilsAnnotationsTreeView::clickItem(os, "product", 1, false);
+    //4. Click active action "Copy qualifier..." in menu actions
+    GTMenu::clickMainMenuItem(os, QStringList() << "Actions" << "Copy/Paste" << "Copy qualifier 'product' value", GTGlobals::UseMouse);
+    QString actualValue = GTClipboard::text(os);
+    CHECK_SET_ERR(actualValue == qValue, QString("Qualifier text %1 differs with expected %2.").arg(actualValue).arg(qValue));
 }
 
 } // namespace GUITest_regression_scenarios

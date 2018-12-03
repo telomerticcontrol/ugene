@@ -149,8 +149,9 @@ enum TaskFlag {
 
     TaskFlag_VerboseStateLog = 1 << 22, //tasks prepared/finished state is dumped to the 'info' log category. Effective for top-level tasks only
 
-    TaskFlag_MinimizeSubtaskErrorText = 1 << 23, //for TaskFlag_FailOnSubtaskError task minimizes the error text
-                                                // excluding task-names info from the text
+    TaskFlag_MinimizeSubtaskErrorText = 1 << 23, // for TaskFlag_FailOnSubtaskError task minimizes the error text
+                                                 // excluding task-names info from the text
+                                                 // applies this behaviour for the current task and all children of the current task
 
     TaskFlag_SuppressErrorNotification = 1 << 24, //for top level tasks only: if task fails, tells if notification is shown
 
@@ -158,7 +159,9 @@ enum TaskFlag {
 
     TaskFlag_OnlyNotificationReport = 1 << 26, // task is asked to generate report
 
-    TaskFlag_CollectChildrenWarnings = 1 << 27
+    TaskFlag_CollectChildrenWarnings = 1 << 27,
+
+    TaskFlag_ConcatenateChildrenErrors = 1 << 28 // task collects errors from all children and unites them into one report
 };
 
 #define TaskFlags_FOSCOE                (TaskFlags(TaskFlag_FailOnSubtaskError) | TaskFlag_FailOnSubtaskCancel)
@@ -315,6 +318,10 @@ public:
 
     void setVerboseOnTaskCancel(bool v) { setFlag(TaskFlag_VerboseOnTaskCancel, v); }
 
+    bool isConcatenateChildrenErrors() const { return flags.testFlag(TaskFlag_ConcatenateChildrenErrors); }
+
+    void setConcatenateChildrenErrors(bool v) { setFlag(TaskFlag_ConcatenateChildrenErrors, v); }
+
     const TaskResources& getTaskResources() {return taskResources;}
 
     //WARN: if set to MAX_PARALLEL_SUBTASKS_AUTO, returns unprocessed value (MAX_PARALLEL_SUBTASKS_AUTO = 0)
@@ -337,6 +344,8 @@ public:
     int getTimeOut() const { return timeInfo.timeOut;}
 
     void addTaskResource(const TaskResourceUsage& r);
+
+    bool isMinimizeSubtaskErrorText() const;
 
 public slots:
     // Set's cancelFlag to true. Does not wait for task to be stopped

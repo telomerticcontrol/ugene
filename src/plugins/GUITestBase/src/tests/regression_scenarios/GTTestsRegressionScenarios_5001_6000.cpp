@@ -1131,7 +1131,6 @@ GUI_TEST_CLASS_DEFINITION(test_5356) {
 //    Expected state: no errors in the log (empty sequences were skipped by CutAdapter)
 
     GTLogTracer l;
-
     GTUtilsWorkflowDesigner::openWorkflowDesigner(os);
     GTUtilsWorkflowDesigner::loadWorkflow(os, testDir + "_common_data/regression/5356/cutadapt_and_trim.uwl");
     GTUtilsTaskTreeView::waitTaskFinished(os);
@@ -1139,13 +1138,14 @@ GUI_TEST_CLASS_DEFINITION(test_5356) {
     GTUtilsWorkflowDesigner::addInputFile(os, "Read FASTQ Files with Reads 1", testDir + "_common_data/regression/5356/reads.fastq");
 
     GTUtilsWorkflowDesigner::click(os, "Cut Adapter");
+    GTGlobals::sleep(200);
     GTUtilsWorkflowDesigner::setParameter(os, "FASTA file with 3' adapters", QDir(testDir + "_common_data/regression/5356/adapter.fa").absolutePath(), GTUtilsWorkflowDesigner::textValue);
     GTUtilsWorkflowDesigner::setParameter(os, "Output folder", "Custom", GTUtilsWorkflowDesigner::comboValue);
     GTUtilsWorkflowDesigner::setParameter(os, "Custom folder", QDir(sandBoxDir).absolutePath(), GTUtilsWorkflowDesigner::textValue);
 
     GTUtilsWorkflowDesigner::runWorkflow(os);
     GTUtilsTaskTreeView::waitTaskFinished(os);
-
+    GTGlobals::sleep(200);
     CHECK_SET_ERR(!l.hasError(), "There is an error in the log");
 }
 
@@ -3196,6 +3196,7 @@ GUI_TEST_CLASS_DEFINITION(test_5751) {
     GTUtilsDialog::waitForDialog(os, new AlignToReferenceBlastDialogFiller(os, new Scenario));
     GTMenu::clickMainMenuItem(os, QStringList() << "Tools" << "Sanger data analysis" << "Map reads to reference...");
     GTUtilsTaskTreeView::waitTaskFinished(os);
+    GTUtilsTaskTreeView::waitTaskFinished(os);
 
     //5. Call a context menu in the Project view on the opened MCA document.
     //6. Select "Lock document for editing" menu item.
@@ -3209,6 +3210,7 @@ GUI_TEST_CLASS_DEFINITION(test_5751) {
     GTUtilsMcaEditorSequenceArea::callContextMenu(os);
     GTUtilsTaskTreeView::waitTaskFinished(os);
     GTKeyboardDriver::keyPress(Qt::Key_Escape);
+    GTGlobals::sleep(100);
 }
 
 GUI_TEST_CLASS_DEFINITION(test_5752) {
