@@ -22,6 +22,7 @@
 #include <QListWidget>
 #include <QListWidgetItem>
 #include <QMessageBox>
+#include <QtSql/qsqldatabase.h>
 
 #include <U2Core/AddDocumentTask.h>
 #include <U2Core/AppContext.h>
@@ -464,6 +465,9 @@ bool SharedConnectionsDialog::checkDbInitializationState(const U2DbiRef &ref, bo
                               tr("Unable to connect to the database:\n"
                                  "check connection settings"));
         coreLog.details(tr("Cannot connect to the shared database: ") + os.getError());
+        QStringList drivers_list = QSqlDatabase::drivers();
+        QString strlist = drivers_list.join(", ");
+        coreLog.details(tr("List of the available sql drivers: ") + strlist);
         return false;
     }
 
