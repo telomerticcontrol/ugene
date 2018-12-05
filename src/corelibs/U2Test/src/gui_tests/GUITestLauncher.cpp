@@ -225,9 +225,12 @@ QProcessEnvironment GUITestLauncher::getProcessEnvironment(QString testName) {
     env.insert(ENV_GUI_TEST, "1");
     env.insert(ENV_USE_NATIVE_DIALOGS, "0");
     env.insert(U2_PRINT_TO_FILE, testOutDir + "/logs/" + testOutFile(testName));
-    env.insert(U2_USER_INI, testOutDir + "/inis/" + testName.replace(':', '_') + "_UGENE.ini");
-    env.insert(U2_USER_INI, "/home/ichebyki/.config/Unipro/UGENED.ini");
-    Settings *settings = AppContext::getSettings();
+
+    QString ini_file_name = testOutDir + "/inis/" + testName.replace(':', '_') + "_UGENE.ini";
+    if (iniFileTemplate != nullptr) {
+        QFile::copy(iniFileTemplate, ini_file_name);
+    }
+    env.insert(U2_USER_INI, ini_file_name);
 
     return env;
 }
