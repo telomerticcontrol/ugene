@@ -95,6 +95,7 @@
 #include "runnables/ugene/plugins/external_tools/TrimmomaticDialogFiller.h"
 #include "runnables/ugene/plugins/workflow_designer/WizardFiller.h"
 #include "runnables/ugene/ugeneui/DocumentFormatSelectorDialogFiller.h"
+#include "runnables/ugene/ugeneui/SequenceReadingModeSelectorDialogFiller.h"
 
 namespace U2 {
 
@@ -1451,16 +1452,8 @@ GUI_TEST_CLASS_DEFINITION(test_6236) {
     CHECK_SET_ERR(desiredMessage, "No expected message in the log");
 }
 
-GUI_TEST_CLASS_DEFINITION(test_6238_1) {
-    //1. Open _common_data/regression/6238/6238.fastq on macOS
-    //Expected: it wasn't opened, the notification "The problem appeared during the data reading. Please, make sure that all input data are correct" appeared
-    GTUtilsNotifications::waitForNotification(os, true, "The text file can't be read. Check the file encoding and make sure the file is not corrupted");
-    GTUtilsProject::openMultiSequenceFileAsSequences(os, testDir + "_common_data/regression/6238/6238.fastq");
-    GTUtilsTaskTreeView::waitTaskFinished(os);
-}
-
-GUI_TEST_CLASS_DEFINITION(test_6238_2) {
-    QString fastqFile = dataDir + "samples/FASTQ/eas.fastq";
+GUI_TEST_CLASS_DEFINITION(test_6238) {
+    QString fastqFile = testDir + "_common_data/regression/6238/eas.fastq";
     QString sandboxFastqFile = sandBoxDir + "eas.fastq";
     QString badFastqFile = testDir + "_common_data/regression/6238/6238.fastq";
     //1. Open "data/samples/FASTQ/eas.fastq".
@@ -1480,6 +1473,7 @@ GUI_TEST_CLASS_DEFINITION(test_6238_2) {
     //4. Accept the offering.
     //Expected state: the file reloading failed, an error notification appeared, there are error messages in the log.
     GTUtilsDialog::waitForDialog(os, new MessageBoxDialogFiller(os, QMessageBox::YesAll));
+    GTUtilsDialog::waitForDialog(os, new SequenceReadingModeSelectorDialogFiller(os, SequenceReadingModeSelectorDialogFiller::Separate));
     GTUtilsNotifications::waitForNotification(os, false, "The text file can't be read. Check the file encoding and make sure the file is not corrupted");
     QByteArray badData = badFile.readAll();
     file.write(badData);
@@ -1732,6 +1726,47 @@ GUI_TEST_CLASS_DEFINITION(test_6279) {
     GTGlobals::sleep(1000);
 }
 
+GUI_TEST_CLASS_DEFINITION(test_6283) {
+    class Custom : public CustomScenario {
+        void run(HI::GUITestOpStatus &os){
+            QWidget *dialog = QApplication::activeModalWidget();
+            CHECK_SET_ERR(dialog != NULL, "AppSettingsDialogFiller isn't found");
+
+            AppSettingsDialogFiller::openTab(os, AppSettingsDialogFiller::ExternalTools);
+
+            //2. Open a python tab
+            AppSettingsDialogFiller::isExternalToolValid(os, "python");
+
+            //Expected:: Bio module is valid
+            bool isToolValid = true;
+#ifndef Q_OS_WIN
+            isToolValid = AppSettingsDialogFiller::isExternalToolValid(os, "Bio");
+#endif
+            if (!isToolValid) {
+                os.setError("Bio is not valid");
+            }
+
+            //Expected: Bio module version is 1.72
+            bool hasVerion = true;
+#ifndef Q_OS_WIN
+            hasVerion = AppSettingsDialogFiller::isToolDescriptionContainsString(os, "Bio", "Version: 1.72");
+#endif
+            if (!hasVerion) {
+                os.setError("Incorrect Bio version");
+            }
+
+            GTUtilsDialog::clickButtonBox(os, dialog, QDialogButtonBox::Ok);
+        }
+    };
+
+    //1. Open "UGENE Application Settings", select "External Tools" tab.
+    GTUtilsDialog::waitForDialog(os, new AppSettingsDialogFiller(os, new Custom()));
+    GTMenu::clickMainMenuItem(os, QStringList() << "Settings" << "Preferences...", GTGlobals::UseMouse);
+
+    CHECK_SET_ERR(!os.hasError(), os.getError());
+
+}
+
 GUI_TEST_CLASS_DEFINITION(test_6291) {
     //1. Open murine.gb
     GTFileDialog::openFile(os, dataDir + "samples/Genbank/murine.gb");
@@ -1746,6 +1781,32 @@ GUI_TEST_CLASS_DEFINITION(test_6291) {
     GTMenu::clickMainMenuItem(os, QStringList() << "Actions" << "Copy/Paste" << "Copy qualifier 'product' value", GTGlobals::UseMouse);
     QString actualValue = GTClipboard::text(os);
     CHECK_SET_ERR(actualValue == qValue, QString("Qualifier text %1 differs with expected %2.").arg(actualValue).arg(qValue));
+}
+
+GUI_TEST_CLASS_DEFINITION(test_6301) {
+    class Custom : public CustomScenario {
+        void run(HI::GUITestOpStatus &os){
+            QWidget *dialog = QApplication::activeModalWidget();
+            CHECK_SET_ERR(dialog != NULL, "AppSettingsDialogFiller isn't found");
+
+            AppSettingsDialogFiller::openTab(os, AppSettingsDialogFiller::ExternalTools);
+
+            //Expected: SPAdes description contains the following string - "Version: 3.13.0"
+            const bool hasVersion = AppSettingsDialogFiller::isToolDescriptionContainsString(os, "SPAdes", "Version: 3.13.0");
+            if (!hasVersion) {
+                os.setError("Unexpected SPAdes version");
+            }
+
+            GTUtilsDialog::clickButtonBox(os, dialog, QDialogButtonBox::Ok);
+        }
+    };
+
+    //1. Open "UGENE Application Settings", select "External Tools" tab.
+    GTUtilsDialog::waitForDialog(os, new AppSettingsDialogFiller(os, new Custom()));
+    GTMenu::clickMainMenuItem(os, QStringList() << "Settings" << "Preferences...", GTGlobals::UseMouse);
+
+    CHECK_SET_ERR(!os.hasError(), os.getError());
+
 }
 
 } // namespace GUITest_regression_scenarios
