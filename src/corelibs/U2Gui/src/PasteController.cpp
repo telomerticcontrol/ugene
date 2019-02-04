@@ -44,6 +44,8 @@
 #include <QApplication>
 #include <QFileInfo>
 #include <QMimeData>
+#include <QTextDocument>
+#include <QTextDocumentWriter>
 #include <QUrl>
 
 namespace U2 {
@@ -133,9 +135,42 @@ PasteTask* PasteFactoryImpl::pasteTask(bool addToProject) {
     PasteTask* res = NULL;
     const QClipboard *clipboard = QApplication::clipboard();
     const QMimeData *mdata = clipboard->mimeData();
+
+    const QString logsDir = AppContext::getAppSettings()->getUserAppsSettings()->getDefaultDataDirPath() + "/logs";
+    const QString filename = "clipbaord_data" + QDateTime::currentDateTime().toString("yyyy.MM.dd_hh-mm");
+    
+    if (mdata->hasImage()) {
+        coreLog.info("Paste: image mime data");
+        QPixmap image(clipboard->pixmap());
+        image.save(logsDir + "image_" + filename);
+    } else if (mdata->hasHtml()) {
+        coreLog.info("Paste: html mime data");
+        QTextDocument textDoc;
+        textDoc.setHtml(clipboard->text());
+        QTextDocumentWriter writer;
+        writer.setFileName(logsDir + filename + ".html");
+        writer.write(&textDoc);
+    } else if (mdata->hasText()) {
+        coreLog.info("Paste: text mime data");
+        QTextDocument textDoc;
+        textDoc.setPlainText(clipboard->text());
+        QTextDocumentWriter writer;
+        writer.setFileName(logsDir + filename + ".txt");
+        writer.write(&textDoc);
+    } else {
+        coreLog.info("Paste: unrecognized mime data");
+    }
+
     if (mdata->hasUrls()) {
         res = new PasteUrlsTask(mdata->urls(), addToProject);
     }else{
+        coreLog.info("PasteTextTask: text ");
+        QTextDocument textDoc;
+        textDoc.setPlainText(clipboard->text());
+        QTextDocumentWriter writer;
+        writer.setFileName(logsDir + "text_passed_to_task" + filename + ".txt");
+        writer.write(&textDoc);
+
         res = new PasteTextTask(clipboard, excludedFilenames, addToProject);
     }
 
