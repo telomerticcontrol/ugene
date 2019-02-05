@@ -215,7 +215,6 @@ static void initLogsCache(LogCacheExt& logsCache, const QStringList& ) {
     LogSettings ls;
     ls.reinitAll();
 
-#ifdef UGENE_FORCE_WRITE_LOG_TO_FILE
     // It should be defined during the UGENE building.
     // It is to force log writing for user's personal packages to avoid explaining how to write the log to file
     // Add to DEFINES when you execute qmake for the project
@@ -223,7 +222,6 @@ static void initLogsCache(LogCacheExt& logsCache, const QStringList& ) {
     const QString logsDir = AppContext::getAppSettings()->getUserAppsSettings()->getDefaultDataDirPath() + "/logs";
     QDir().mkpath(logsDir);
     ls.outputFile = logsDir + "/ugene_log_" + QDateTime::currentDateTime().toString("yyyy.MM.dd_hh-mm") + ".txt";
-#endif
 
     if (ls.toFile) {
         logsCache.setFileOutputEnabled(ls.outputFile);
