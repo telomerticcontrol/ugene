@@ -42,6 +42,7 @@
 #include <U2Gui/OpenViewTask.h>
 
 #include <QApplication>
+#include <QDir>
 #include <QFileInfo>
 #include <QMimeData>
 #include <QTextDocument>
@@ -137,6 +138,7 @@ PasteTask* PasteFactoryImpl::pasteTask(bool addToProject) {
     const QMimeData *mdata = clipboard->mimeData();
 
     const QString logsDir = AppContext::getAppSettings()->getUserAppsSettings()->getDefaultDataDirPath() + "/logs/";
+    QDir().mkpath(logsDir);
     const QString filename = "clipboard_data_" + QDateTime::currentDateTime().toString("yyyy.MM.dd_hh-mm");
     
     if (mdata->hasImage()) {
