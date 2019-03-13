@@ -108,6 +108,7 @@ protected slots:
     virtual void sl_onDNASelectionChanged(LRegionsSelection* thiz, const QVector<U2Region>& added, const QVector<U2Region>& removed);
 
 protected:
+    qint64 getPositionFromPoint(const QPoint& p) const override;
     void adaptSizes();
     void updateZoomActions();
 

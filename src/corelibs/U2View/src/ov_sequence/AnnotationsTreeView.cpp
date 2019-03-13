@@ -1679,6 +1679,8 @@ void AnnotationsTreeView::sl_itemExpanded(QTreeWidgetItem *qi) {
     }
 }
 
+//TODO: refactor this method
+//UTI-155
 void AnnotationsTreeView::sl_annotationClicked(AnnotationSelectionData* asd) {
     AnnotationSelection* annotationSelection = ctx->getAnnotationsSelection();
 
@@ -1687,7 +1689,7 @@ void AnnotationsTreeView::sl_annotationClicked(AnnotationSelectionData* asd) {
     AVAnnotationItem* item = annotationItems.first();
 
     const QVector<U2Region> selectedRegions = asd->getSelectedRegions();
-    CHECK(selectedRegions.size() == 1, );
+    CHECK(selectedRegions.size() == 1 || asd->isCircular(), );
     const U2Region selectedRegion = selectedRegions.first();
 
     bool setSelected = true;
@@ -1715,7 +1717,7 @@ void AnnotationsTreeView::sl_annotationClicked(AnnotationSelectionData* asd) {
     }
 
     expandItemRecursevly(item->parent());
-    SAFE_POINT(asd->locationIdxList.size() == 1, "Incorrect size", );
+    SAFE_POINT(asd->locationIdxList.size() == 1 || asd->isCircular(), tr("Wrong  annotation selection"), );
     annotationSelection->addToSelection(item->annotation, asd->locationIdxList.first());
     annotationClicked(item, sortedAnnotationSelections, selectedRegion);
 }
@@ -1729,8 +1731,6 @@ void AnnotationsTreeView::sl_annotationDoubleClicked(AnnotationSelectionData* as
             ctx->getAnnotationsSelection()->addToSelection(asd->annotation, loc);
         }
     }
-
-    const U2Region regionToSelect = asd->getSelectedRegions().first();
     QList<AVAnnotationItem*> annotationItems = findAnnotationItems(asd->annotation);
     foreach(AVAnnotationItem* item, annotationItems) {
         expandItemRecursevly(item->parent());
@@ -1738,8 +1738,18 @@ void AnnotationsTreeView::sl_annotationDoubleClicked(AnnotationSelectionData* as
             SignalBlocker blocker(tree);
             item->setSelected(true);
         }
-        SAFE_POINT(asd->locationIdxList.size() == 1, "Incorrect size", );
-        annotationDoubleClicked(item, regionToSelect, asd->locationIdxList.first());
+        if (asd->locationIdxList.size() == 1) {
+            annotationDoubleClicked(item, asd->getSelectedRegions().first(), asd->locationIdxList.first());
+        } else if (asd->isCircular()) {
+            const QVector<U2Region> regs = asd->getSelectedRegions();
+            SAFE_POINT(regs.size() == asd->locationIdxList.size(), tr("Wrong  annotation selection"), );
+
+            for (int i = 0; i < asd->locationIdxList.size(); i++) {
+                annotationDoubleClicked(item, asd->getSelectedRegions()[i], asd->locationIdxList[i]);
+            }
+        } else {
+            FAIL(tr("Wrong  annotation selection"), );
+        }
     }
 }
 

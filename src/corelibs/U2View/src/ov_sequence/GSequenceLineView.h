@@ -150,7 +150,7 @@ protected slots:
     void completeUpdate();
 
 protected:
-    QPoint toRenderAreaPoint(const QPoint& p);
+    QPoint toRenderAreaPoint(const QPoint& p) const;
     virtual void updateScrollBar();
     void setSelection(const U2Region& r);
     void addSelection(const U2Region& r);
@@ -162,6 +162,8 @@ protected:
     virtual int getPageStep() const;
     void autoScrolling(const QPoint& areaPoint);
     virtual void resizeSelection(const QPoint& areaPoint);
+    virtual qint64 getPositionFromPoint(const QPoint& point) const;
+    qint64 getPositionFromMouseEvent(QMouseEvent* me) const;
     void cancelSelectionResizing();
     void changeSelectionOnScrollbarMoving(const U2Region& newSelection);
     void changeSelection(QVector<U2Region>& regions, const U2Region& newSelection);

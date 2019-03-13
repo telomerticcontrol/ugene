@@ -118,6 +118,22 @@ void AnnotationSelectionData::addLocation(int locIdx) {
     }
 }
 
+bool AnnotationSelectionData::isCircular() const {
+    const QVector<U2Region> selectedRegions = getSelectedRegions();
+    CHECK(2 == selectedRegions.size(), false);
+    CHECK(2 == locationIdxList.size(), false);
+
+    bool hasJunctionPoint = false;
+    foreach(const U2Region& reg, selectedRegions) {
+        CHECK_CONTINUE(0 == reg.startPos);
+
+        hasJunctionPoint = true;
+        break;
+    }
+
+    return hasJunctionPoint;
+}
+
 int AnnotationSelectionData::getSelectedRegionsLen() const {
     int len = 0;
     QVector<U2Region> regions = annotation->getRegions();

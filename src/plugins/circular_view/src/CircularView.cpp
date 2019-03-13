@@ -95,21 +95,11 @@ void CircularView::updateMinSize() {
 
 void CircularView::mousePressEvent(QMouseEvent * e) {
     GSequenceLineViewAnnotated::mousePressEvent(e);
-    QPoint p = toRenderAreaPoint(e->pos());
-    int offset = ra->getCenterY();
-    QPoint point(p.x() - width()/2 , p.y() - offset);
-    qreal arcsin = coordToAngle(point);
-    lastPressPos = 180 * graduation * arcsin / PI;
-    lastPressPos-=ra->rotationDegree*graduation;
-    if(lastPressPos<0) {
-        lastPressPos+=360*graduation;
-    }
+    lastPressPos = getPositionFromMouseEvent(e);
     lastMovePos = lastPressPos;
-    lastMouseY = point.y();
+    lastMouseY = toRenderAreaPoint(e->pos()).y() - ra->getCenterY();
     currectSelectionLen = 0;
-
     holdSelection = false;
-
     QWidget::mousePressEvent(e);
 }
 
@@ -142,19 +132,19 @@ void CircularView::mouseMoveEvent(QMouseEvent * e)
 
     if (e->buttons() & Qt::LeftButton) {
         float a = 180 * graduation * arcsin / PI;
-        a-=ra->rotationDegree*graduation;
-        if(a<0) {
-            a+=360*graduation;
+        a -= ra->rotationDegree * graduation;
+        if(a < 0) {
+            a += 360 * graduation;
         }
 
         Direction pressMove = getDirection(lastPressPos, lastMovePos);
         Direction moveA = getDirection(lastMovePos, a);
 
-        float totalLen = qAbs(lastPressPos-lastMovePos) + qAbs(lastMovePos-a);
-        totalLen/=graduation;
+        float totalLen = qAbs(lastPressPos - lastMovePos) + qAbs(lastMovePos - a);
+        totalLen /= graduation;
 
-        if ((totalLen<10) && !holdSelection) {
-            if ((pressMove!=CW) && (moveA!=CW)) {
+        if ((totalLen < 10) && !holdSelection) {
+            if ((pressMove != CW) && (moveA != CW)) {
                 clockwise = false;
             }
             else if ((pressMove != CCW) && (moveA != CCW)) {
@@ -183,15 +173,18 @@ void CircularView::mouseMoveEvent(QMouseEvent * e)
         bool twoParts = false;
         if (selLen < 0) {    // 'a' and 'lastPressPos' are swapped so it should be positive
             selLen = selEnd + seqLen - selStart;
-            Q_ASSERT(selLen>=0);
+            if (selLen < 0) {
+                return;
+            }
+            Q_ASSERT(selLen >= 0);
 
             if (selEnd) {    // [0, selEnd]
                 twoParts = true;
             }
         }
 
-        if (selLen > seqLen-selStart) {
-            selLen = seqLen-selStart;
+        if (selLen > seqLen - selStart) {
+            selLen = seqLen - selStart;
         }
 
         if (!clockwise) {
@@ -413,6 +406,19 @@ void CircularView::invertCurrentSelection() {
             setInverseSelection(selRegions.last(), selRegions.first());
         }
     }
+}
+
+qint64 CircularView::getPositionFromPoint(const QPoint& p) const {
+    int offset = ra->getCenterY();
+    QPoint point(p.x() - width() / 2, p.y() - offset);
+    qreal arcsin = coordToAngle(point);
+    qint64 resultPosition = 180 * graduation * arcsin / PI;
+    resultPosition -= ra->rotationDegree * graduation;
+    if (resultPosition < 0) {
+        resultPosition += 360 * graduation;
+    }
+
+    return resultPosition;
 }
 
 void CircularView::adaptSizes() {

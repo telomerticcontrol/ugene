@@ -348,7 +348,7 @@ void GSequenceLineView::onVisibleRangeChanged(bool signal) {
 }
 
 
-QPoint GSequenceLineView::toRenderAreaPoint(const QPoint& p) {
+QPoint GSequenceLineView::toRenderAreaPoint(const QPoint& p) const {
     assert(contentWidget);
     return p - contentWidget->pos();
 }
@@ -598,6 +598,19 @@ void GSequenceLineView::resizeSelection(const QPoint& areaPoint) {
     }
 
     changeSelection(regions, newSelection);
+}
+
+qint64 GSequenceLineView::getPositionFromPoint(const QPoint& point) const {
+    qint64 resultPosition = renderArea->coordToPos(point);
+
+    return resultPosition;
+}
+
+qint64 GSequenceLineView::getPositionFromMouseEvent(QMouseEvent* me) const {
+    QPoint renderAreaPos = toRenderAreaPoint(me->pos());
+    qint64 resultPosition = getPositionFromPoint(renderAreaPos);
+
+    return resultPosition;
 }
 
 void GSequenceLineView::changeSelectionOnScrollbarMoving(const U2Region& newSelection) {
