@@ -191,7 +191,7 @@ private:
     bool initiateDragAndDrop(QMouseEvent* me);
     void finishDragAndDrop(Qt::DropAction dndAction);
 
-    void annotationClicked(AVAnnotationItem* item, QMap<AVAnnotationItem*, QList<U2Region> > selectedAnnotations, const U2Region selectedRegion = U2Region());
+    void annotationClicked(AVAnnotationItem* item, QMap<AVAnnotationItem*, QList<U2Region> > selectedAnnotations, const QList<U2Region>& selectedRegions = QList<U2Region>());
     void annotationDoubleClicked(AVAnnotationItem* item, const U2Region& selectedRegion, const int numOfClickedRegion = -1);
     void clearSelectedNotAnnotations();
 

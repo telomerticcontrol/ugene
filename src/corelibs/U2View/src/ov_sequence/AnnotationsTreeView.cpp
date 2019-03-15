@@ -1689,7 +1689,8 @@ void AnnotationsTreeView::sl_annotationClicked(AnnotationSelectionData* asd) {
     AVAnnotationItem* item = annotationItems.first();
 
     const QVector<U2Region> selectedRegions = asd->getSelectedRegions();
-    CHECK(selectedRegions.size() == 1 || asd->isCircular(), );
+    CHECK(asd->locationIdxList.size() == 1 || asd->isCircular(), );
+
     const U2Region selectedRegion = selectedRegions.first();
 
     bool setSelected = true;
@@ -1705,7 +1706,9 @@ void AnnotationsTreeView::sl_annotationClicked(AnnotationSelectionData* asd) {
     //If yes - remove this selected region
     //If no - we have no need to do smth, because if this click continue as double-click, we will expand selected regions of this annotation for current region too
     //Check "selectedAnnotation.value(item).size() == 1" here because we need to know - if we want to remove the last selected region of current annotation, we need also to remove annotation selection too
-    const bool removeLastRegion = (sortedAnnotationSelections.value(item).size() == 1) && sortedAnnotationSelections.value(item).contains(selectedRegion);
+    const bool removeLastRegion = (sortedAnnotationSelections.value(item).size() == 1) &&
+                                  (sortedAnnotationSelections.value(item).contains(selectedRegions.first())) &&
+                                  (sortedAnnotationSelections.value(item).contains(selectedRegions.last()));
 
     if (removeLastRegion) {
         foreach(int loc, asd->locationIdxList) {
@@ -1718,8 +1721,12 @@ void AnnotationsTreeView::sl_annotationClicked(AnnotationSelectionData* asd) {
 
     expandItemRecursevly(item->parent());
     SAFE_POINT(asd->locationIdxList.size() == 1 || asd->isCircular(), tr("Wrong  annotation selection"), );
+
     annotationSelection->addToSelection(item->annotation, asd->locationIdxList.first());
-    annotationClicked(item, sortedAnnotationSelections, selectedRegion);
+    if (2 == asd->locationIdxList.size()) {
+        annotationSelection->addToSelection(item->annotation, asd->locationIdxList.last());
+    }
+    annotationClicked(item, sortedAnnotationSelections, selectedRegions.toList());
 }
 
 //TODO: refactor this method
@@ -1742,13 +1749,13 @@ void AnnotationsTreeView::sl_annotationDoubleClicked(AnnotationSelectionData* as
             annotationDoubleClicked(item, asd->getSelectedRegions().first(), asd->locationIdxList.first());
         } else if (asd->isCircular()) {
             const QVector<U2Region> regs = asd->getSelectedRegions();
-            SAFE_POINT(regs.size() == asd->locationIdxList.size(), tr("Wrong  annotation selection"), );
+            SAFE_POINT(regs.size() == asd->locationIdxList.size(), tr("Wrong annotation selection"), );
 
             for (int i = 0; i < asd->locationIdxList.size(); i++) {
                 annotationDoubleClicked(item, asd->getSelectedRegions()[i], asd->locationIdxList[i]);
             }
         } else {
-            FAIL(tr("Wrong  annotation selection"), );
+            FAIL(tr("Wrong annotation selection"), );
         }
     }
 }
@@ -1800,7 +1807,7 @@ void AnnotationsTreeView::sl_sequenceRemoved(ADVSequenceObjectContext* advContex
 //TODO: refactoring of annotationClicked and annotationDoubleClicked methods.
 //It's too difficult to understand what's going on in this methods
 //UTI-155
-void AnnotationsTreeView::annotationClicked(AVAnnotationItem* item, QMap<AVAnnotationItem*, QList<U2Region> > selectedAnnotations, const U2Region selectedRegion) {
+void AnnotationsTreeView::annotationClicked(AVAnnotationItem* item, QMap<AVAnnotationItem*, QList<U2Region> > selectedAnnotations, const QList<U2Region>& selectedRegions) {
     ADVSequenceObjectContext* seqObjCtx = ctx->getSequenceContext(item->getAnnotationTableObject());
     SAFE_POINT(seqObjCtx != NULL, "ADVSequenceObjectContext is NULL", );
 
@@ -1816,9 +1823,16 @@ void AnnotationsTreeView::annotationClicked(AVAnnotationItem* item, QMap<AVAnnot
         }
     } else {
         QVector<U2Region> toSelect;
-        if (!selectedRegion.isEmpty() && selectedAnnotations.value(item).contains(selectedRegion)) {
-            selectedAnnotation[item].removeOne(selectedRegion);
-            selectedAnnotations[item].removeOne(selectedRegion);
+        if (!selectedRegions.isEmpty() &&
+            selectedAnnotations.value(item).contains(selectedRegions.first()) &&
+            selectedAnnotations.value(item).contains(selectedRegions.last())) {
+
+            selectedAnnotation[item].removeOne(selectedRegions.first());
+            selectedAnnotations[item].removeOne(selectedRegions.first());
+            if (selectedRegions.size() == 2) {
+                selectedAnnotation[item].removeOne(selectedRegions.last());
+                selectedAnnotations[item].removeOne(selectedRegions.last());
+            }
             if (selectedAnnotation[item].isEmpty()) {
                 selectedAnnotation.remove(item);
             }

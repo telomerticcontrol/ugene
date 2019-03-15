@@ -58,7 +58,7 @@ public:
     void addLocation(int locIdx);
 
     /**
-     * Check if  it's the selection of the circular view, which contains the junction point
+     * Check if it's the selection of the circular view, which contains the junction point
      */
     bool isCircular() const;
 

@@ -278,7 +278,8 @@ void GSequenceLineViewAnnotated::mouseDoubleClickEvent(QMouseEvent* me) {
         const qint64 currentPos = renderArea->coordToPos(toRenderAreaPoint(me->pos()));
         bool containsCurrentPoint = false;
         foreach(const U2Region& reg, selRegions) {
-            CHECK_CONTINUE(reg.contains(currentPos));
+            U2Region localRegionImplementation = getRenderArea()->toLocalRegionImplementation(reg);
+            CHECK_CONTINUE(localRegionImplementation.contains(currentPos));
 
             containsCurrentPoint = true;
             break;
@@ -286,7 +287,7 @@ void GSequenceLineViewAnnotated::mouseDoubleClickEvent(QMouseEvent* me) {
         if (containsCurrentPoint) {
             ctx->emitAnnotationSequenceSelection(asd);
         }
-        lastPressPos = getPositionFromMouseEvent(me);
+        lastPressPos = currentPos;
     } else {
         GSequenceLineView::mouseDoubleClickEvent(me);
     }

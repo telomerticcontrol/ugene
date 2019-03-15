@@ -134,7 +134,6 @@ protected:
     void focusInEvent(QFocusEvent* fe);
     void focusOutEvent(QFocusEvent* fe);
     void keyPressEvent(QKeyEvent *e);
-
     virtual void onVisibleRangeChanged(bool signal = true);
 
 public slots:
@@ -162,8 +161,6 @@ protected:
     virtual int getPageStep() const;
     void autoScrolling(const QPoint& areaPoint);
     virtual void resizeSelection(const QPoint& areaPoint);
-    virtual qint64 getPositionFromPoint(const QPoint& point) const;
-    qint64 getPositionFromMouseEvent(QMouseEvent* me) const;
     void cancelSelectionResizing();
     void changeSelectionOnScrollbarMoving(const U2Region& newSelection);
     void changeSelection(QVector<U2Region>& regions, const U2Region& newSelection);
@@ -202,6 +199,7 @@ public:
     virtual float posToCoordF(qint64 p, bool useVirtualSpace = false) const;
     //number of pixels per base
     virtual double getCurrentScale() const;
+    virtual U2Region toLocalRegionImplementation(const U2Region& region) const;
     //char width, derived from current 'font'
     int getCharWidth() const {return charWidth;}
 

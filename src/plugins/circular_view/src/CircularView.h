@@ -81,6 +81,7 @@ public:
 
     static const int MIN_OUTER_SIZE;
     static const int CV_REGION_ITEM_WIDTH;
+    static const int GRADUATION;
 
     void setAngle(int angle);
     void updateMinSize();
@@ -108,7 +109,6 @@ protected slots:
     virtual void sl_onDNASelectionChanged(LRegionsSelection* thiz, const QVector<U2Region>& added, const QVector<U2Region>& removed);
 
 protected:
-    qint64 getPositionFromPoint(const QPoint& p) const override;
     void adaptSizes();
     void updateZoomActions();
 
@@ -124,6 +124,8 @@ protected:
      */
     void invertCurrentSelection();
 
+    CircularViewRenderArea* getRenderArea() const;
+
     Direction getDirection(float a, float b) const;
 
     QVBoxLayout *layout;
@@ -131,12 +133,8 @@ protected:
     int lastMovePos;
     int currectSelectionLen;
     int lastMouseY;
-    CircularViewRenderArea* ra;
     bool clockwise, holdSelection;
-    CircularViewSettings*   settings;
-
-private:
-    static const int graduation;
+    CircularViewSettings* settings;
 };
 
 class CircularViewRenderArea : public GSequenceLineViewAnnotatedRenderArea {
@@ -155,6 +153,8 @@ public:
     static const int MIDDLE_ELLIPSE_SIZE;
     int getCenterY() const { return verticalOffset; }
 protected:
+    qint64 coordToPos(const QPoint& p) const override;
+    U2Region toLocalRegionImplementation(const U2Region& region) const override;
     void resizeEvent(QResizeEvent *e);
     virtual void drawAll(QPaintDevice* pd);
     virtual U2Region getAnnotationYRange(Annotation *a, int ri, const AnnotationSettings *as) const;
@@ -187,6 +187,7 @@ private:
     QPainterPath createAnnotationArrowPath(float startAngle, float spanAngle, float dAlpha, const QRect &outerRect, const QRect &innerRect,
         const QRect &middleRect, bool complementary, bool isShort) const;
     void removeRegionsOutOfRange(QVector<U2Region> &location, int seqLen) const;
+    qint64 asinToResultPos(const qreal asin) const;
 
     /**
      * Returns a pair of merged regions: the second one was added to the first

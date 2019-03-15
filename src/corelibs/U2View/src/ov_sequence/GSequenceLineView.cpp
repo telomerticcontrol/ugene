@@ -178,8 +178,8 @@ void GSequenceLineView::mousePressEvent(QMouseEvent* me) {
     }
 
     lastPressPos = renderArea->coordToPos(renderAreaPos);
-
-    SAFE_POINT(lastPressPos >= visibleRange.startPos && lastPressPos <= visibleRange.endPos(), "Last mouse press position is out of visible range!",);
+    const U2Region visibleLocalImpl = renderArea->toLocalRegionImplementation(visibleRange);
+    SAFE_POINT(lastPressPos >= visibleLocalImpl.startPos && lastPressPos <= visibleLocalImpl.endPos(), "Last mouse press position is out of visible range!", );
 
     if (me->button() == Qt::RightButton) {
         QWidget::mousePressEvent(me);
@@ -600,19 +600,6 @@ void GSequenceLineView::resizeSelection(const QPoint& areaPoint) {
     changeSelection(regions, newSelection);
 }
 
-qint64 GSequenceLineView::getPositionFromPoint(const QPoint& point) const {
-    qint64 resultPosition = renderArea->coordToPos(point);
-
-    return resultPosition;
-}
-
-qint64 GSequenceLineView::getPositionFromMouseEvent(QMouseEvent* me) const {
-    QPoint renderAreaPos = toRenderAreaPoint(me->pos());
-    qint64 resultPosition = getPositionFromPoint(renderAreaPos);
-
-    return resultPosition;
-}
-
 void GSequenceLineView::changeSelectionOnScrollbarMoving(const U2Region& newSelection) {
     QVector<U2Region> regions = ctx->getSequenceSelection()->getSelectedRegions();
     regions.removeOne(resizableRegion);
@@ -664,6 +651,10 @@ void GSequenceLineViewRenderArea::updateFontMetrics() {
 void GSequenceLineViewRenderArea::drawFocus(QPainter& p) {
     p.setPen(QPen(Qt::black, 1, Qt::DotLine));
     p.drawRect(0, 0, width()-1, height()-1);
+}
+
+U2Region GSequenceLineViewRenderArea::toLocalRegionImplementation(const U2Region& region) const {
+    return region;
 }
 
 void GSequenceLineViewRenderArea::drawFrame(QPainter& p) {
