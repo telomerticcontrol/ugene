@@ -73,6 +73,7 @@ void CreateAnnotationFullWidget::setAnnotationNameVisible(bool visible) {
 
 void CreateAnnotationFullWidget::setAutoTableOptionVisible(bool visible) {
     rbUseAutoTable->setVisible(visible);
+    gbSaveAnnotationsInnerWidget->adjustSize();
 }
 
 void CreateAnnotationFullWidget::setDescriptionVisible(bool visible) {
