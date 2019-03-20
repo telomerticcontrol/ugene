@@ -55,53 +55,6 @@ void CreateAnnotationFullWidget::setGroupNameVisible(bool visible) {
 
 void CreateAnnotationFullWidget::setLocationVisible(bool visible) {
     gbLocation->setVisible(visible);
-
-    if (visible) {
-        mainLayout->addWidget(gbSaveAnnotationsInnerWidget);
-
-        saveAnnotationsLayout->removeWidget(rbExistingTable);
-        saveAnnotationsLayout->removeWidget(cbExistingTable);
-        saveAnnotationsLayout->removeWidget(tbBrowseExistingTable);
-
-        saveAnnotationsLayout->removeWidget(rbCreateNewTable);
-        saveAnnotationsLayout->removeWidget(leNewTablePath);
-        saveAnnotationsLayout->removeWidget(tbBrowseNewTable);
-
-        saveAnnotationsLayout->removeWidget(rbUseAutoTable);
-
-        saveAnnotationsLayout->addWidget(rbExistingTable, 0, 0);
-        saveAnnotationsLayout->addWidget(cbExistingTable, 0, 1);
-        saveAnnotationsLayout->addWidget(tbBrowseExistingTable, 0, 2);
-
-        saveAnnotationsLayout->addWidget(rbCreateNewTable, 1, 0);
-        saveAnnotationsLayout->addWidget(leNewTablePath, 1, 1);
-        saveAnnotationsLayout->addWidget(tbBrowseNewTable, 1, 2);
-
-        saveAnnotationsLayout->addWidget(rbUseAutoTable, 2, 0);
-    } else {
-        parametersLayout->addWidget(gbSaveAnnotationsInnerWidget);
-
-        saveAnnotationsLayout->removeWidget(rbExistingTable);
-        saveAnnotationsLayout->removeWidget(cbExistingTable);
-        saveAnnotationsLayout->removeWidget(tbBrowseExistingTable);
-
-        saveAnnotationsLayout->removeWidget(rbCreateNewTable);
-        saveAnnotationsLayout->removeWidget(leNewTablePath);
-        saveAnnotationsLayout->removeWidget(tbBrowseNewTable);
-
-        saveAnnotationsLayout->removeWidget(rbUseAutoTable);
-
-        saveAnnotationsLayout->addWidget(rbExistingTable, 0, 0, 1, 2);
-        saveAnnotationsLayout->addWidget(cbExistingTable, 1, 0);
-        saveAnnotationsLayout->addWidget(tbBrowseExistingTable, 1, 1);
-
-        saveAnnotationsLayout->addWidget(rbCreateNewTable, 2, 0, 1, 2);
-        saveAnnotationsLayout->addWidget(leNewTablePath, 3, 0);
-        saveAnnotationsLayout->addWidget(tbBrowseNewTable, 3, 1);
-
-        saveAnnotationsLayout->addWidget(rbUseAutoTable, 4, 0, 1, 2);
-        parametersLayout->addStretch();
-    }
 }
 
 void CreateAnnotationFullWidget::setAnnotationParametersVisible(bool /*visible*/) {
