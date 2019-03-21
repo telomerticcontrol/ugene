@@ -1056,10 +1056,6 @@ void GTUtilsWorkflowDesigner::setCellValue(HI::GUITestOpStatus &os, QWidget* par
         }else{
             GTComboBox::setCurrentIndex(os, box, comboVal, true, method);
         }
-#ifdef Q_OS_WIN
-        //added to fix UGENE-3597
-        GTKeyboardDriver::keyClick(Qt::Key_Enter);
-#endif
         break;
     }
     case(textValue):{
