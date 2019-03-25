@@ -58,8 +58,12 @@ GUI_TEST_CLASS_DEFINITION(test_0001) {
 
     AlignToReferenceBlastDialogFiller::Settings settings;
     settings.referenceUrl = testDir + "_common_data/sanger/reference.gb";
-    for (int i = 5; i <= 7; i++) {
-        settings.readUrls << QString(testDir + "_common_data/sanger/sanger_%1.ab1").arg(i, 2, 10, QChar('0'));
+    for (int i = 5; i <= 14; i++) {
+        if (i < 10) {
+            settings.readUrls << QString(testDir + "_common_data/sanger/sanger_%1.ab1").arg(i, 2, 10, QChar('0'));
+        } else {
+            settings.readUrls << QString(testDir + "_common_data/sanger/sanger_%1.ab1").arg(QString::number(i));
+        }
     }
     settings.outAlignment = QFileInfo(sandBoxDir + "sanger_test_0001").absoluteFilePath();
 
@@ -215,15 +219,7 @@ GUI_TEST_CLASS_DEFINITION(test_0005_1) {
 //    Expected state: the result alignment rows are named like "SZYD_Cas9_*".
     GTUtilsTaskTreeView::waitTaskFinished(os);
 
-    const QStringList expectedReadsnames = QStringList() << "SZYD_Cas9_5B70"
-                                                         << "SZYD_Cas9_5B71"
-                                                         << "SZYD_Cas9_CR50"
-                                                         << "SZYD_Cas9_CR51"
-                                                         << "SZYD_Cas9_CR52"
-                                                         << "SZYD_Cas9_CR53"
-                                                         << "SZYD_Cas9_CR54"
-                                                         << "SZYD_Cas9_CR55"
-                                                         << "SZYD_Cas9_CR56"
+    const QStringList expectedReadsnames = QStringList() << "SZYD_Cas9_5B71"
                                                          << "SZYD_Cas9_CR60"
                                                          << "SZYD_Cas9_CR61"
                                                          << "SZYD_Cas9_CR62"
@@ -277,15 +273,7 @@ GUI_TEST_CLASS_DEFINITION(test_0005_2) {
 //    Expected state: the result alignment rows are named like "sanger_*".
     GTUtilsTaskTreeView::waitTaskFinished(os);
 
-    const QStringList expectedReadsnames = QStringList() << "sanger_01"
-                                                         << "sanger_02"
-                                                         << "sanger_04"
-                                                         << "sanger_05"
-                                                         << "sanger_06"
-                                                         << "sanger_07"
-                                                         << "sanger_08"
-                                                         << "sanger_09"
-                                                         << "sanger_10"
+    const QStringList expectedReadsnames = QStringList() << "sanger_02"
                                                          << "sanger_14"
                                                          << "sanger_15"
                                                          << "sanger_16"
@@ -347,15 +335,7 @@ GUI_TEST_CLASS_DEFINITION(test_0005_3) {
     GTUtilsDashboard::clickOutputFile(os, "sanger_test_0005_3.ugenedb");
     GTUtilsTaskTreeView::waitTaskFinished(os);
 
-    const QStringList expectedReadsnames = QStringList() << "SZYD_Cas9_5B70"
-                                                         << "SZYD_Cas9_5B71"
-                                                         << "SZYD_Cas9_CR50"
-                                                         << "SZYD_Cas9_CR51"
-                                                         << "SZYD_Cas9_CR52"
-                                                         << "SZYD_Cas9_CR53"
-                                                         << "SZYD_Cas9_CR54"
-                                                         << "SZYD_Cas9_CR55"
-                                                         << "SZYD_Cas9_CR56"
+    const QStringList expectedReadsnames = QStringList() << "SZYD_Cas9_5B71"
                                                          << "SZYD_Cas9_CR60"
                                                          << "SZYD_Cas9_CR61"
                                                          << "SZYD_Cas9_CR62"
@@ -421,15 +401,7 @@ GUI_TEST_CLASS_DEFINITION(test_0005_4) {
     GTUtilsDashboard::clickOutputFile(os, "sanger_test_0005_4.ugenedb");
     GTUtilsTaskTreeView::waitTaskFinished(os);
 
-    const QStringList expectedReadsnames = QStringList() << "sanger_01"
-                                                         << "sanger_02"
-                                                         << "sanger_04"
-                                                         << "sanger_05"
-                                                         << "sanger_06"
-                                                         << "sanger_07"
-                                                         << "sanger_08"
-                                                         << "sanger_09"
-                                                         << "sanger_10"
+    const QStringList expectedReadsnames = QStringList() << "sanger_02"
                                                          << "sanger_14"
                                                          << "sanger_15"
                                                          << "sanger_16"
@@ -498,7 +470,7 @@ GUI_TEST_CLASS_DEFINITION(test_0007) {
 
     CHECK_SET_ERR(l.hasError(), "Alignment should fail");
 
-    settings.minIdentity = 70;
+    settings.minIdentity = 40;
 
     GTUtilsDialog::waitForDialog(os, new AlignToReferenceBlastDialogFiller(settings, os));
     GTMenu::clickMainMenuItem(os, QStringList() << "Tools" << "Sanger data analysis" << "Map reads to reference...");
