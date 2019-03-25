@@ -40,6 +40,7 @@ CreateAnnotationFullWidget::CreateAnnotationFullWidget(QWidget *parent) :
     setupUi(this);
     initLayout();
     init();
+    initOsDependingLayoutSettings();
     connectSignals();
 }
 
@@ -264,6 +265,17 @@ void CreateAnnotationFullWidget::initLayout() {
 
 void CreateAnnotationFullWidget::init() {
     useAminoAnnotationTypes(false);
+}
+
+void CreateAnnotationFullWidget::initOsDependingLayoutSettings() {
+#ifdef Q_OS_WIN
+    verticalLayout_6->setSpacing(6);
+    horizontalLayout_10->setSpacing(2);
+    const QMargins margins = gbSaveAnnotationsInnerWidget->contentsMargins();
+    gbSaveAnnotationsInnerWidget->layout()->setContentsMargins(9, 0, 9, 6);
+#elif Q_OS_UNIX
+
+#endif
 }
 
 void CreateAnnotationFullWidget::connectSignals() {
