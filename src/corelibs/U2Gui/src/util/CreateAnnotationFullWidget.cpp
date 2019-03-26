@@ -272,7 +272,7 @@ void CreateAnnotationFullWidget::initOsDependingLayoutSettings() {
     verticalLayout_6->setSpacing(6);
     horizontalLayout_10->setSpacing(2);
     gbSaveAnnotationsInnerWidget->layout()->setContentsMargins(9, 0, 9, 6);
-#elif defined(Q_OS_UNIX)
+#elif !defined(Q_OS_OSX)
     verticalLayout_6->setSpacing(6);
     this->layout()->setSpacing(10);
     gbSaveAnnotationsInnerWidget->layout()->setContentsMargins(9, 6, 9, 6);
