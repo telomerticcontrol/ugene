@@ -40,7 +40,7 @@
 namespace U2 {
 namespace LocalWorkflow {
 
-const QString TrimmomaticWorker::TRIMMOMATIC_DIR = "trimmomatic";
+const QString TrimmomaticWorker::TRIMMOMATIC_DIR = "Trimmomatic";
 const QString TrimmomaticWorker::SE_OUTPUT_FILE_NAME_SUFFIX = "_trim";
 const QString TrimmomaticWorker::PE_OUTPUT_PAIRED_FILE_NAME_SUFFIX = "P";
 const QString TrimmomaticWorker::PE_OUTPUT_UNPAIRED_FILE_NAME_SUFFIX = "U";
@@ -197,7 +197,7 @@ TrimmomaticTaskSettings TrimmomaticWorker::getSettings(U2OpStatus &os) {
     TrimmomaticTaskSettings settings;
 
     QString workingDir = FileAndDirectoryUtils::createWorkingDir(context->workingDir(), FileAndDirectoryUtils::WORKFLOW_INTERNAL, "", context->workingDir());
-    workingDir = GUrlUtils::createDirectory(workingDir + TRIMMOMATIC_DIR , "_", os);
+    workingDir = GUrlUtils::prepareDirLocation(workingDir + TRIMMOMATIC_DIR, os);
 
     const Message message = getMessageAndSetupScriptValues(input);
     settings.inputUrl1 = message.getData().toMap()[TrimmomaticWorkerFactory::INPUT_SLOT].toString();
