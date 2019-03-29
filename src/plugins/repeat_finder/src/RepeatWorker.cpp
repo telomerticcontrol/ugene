@@ -145,9 +145,21 @@ void RepeatWorkerFactory::init() {
         m["maximum"] = INT_MAX; 
         m["suffix"] = L10N::suffixBp();
         delegates[MIN_DIST_ATTR] = new SpinBoxDelegate(m);
+    }
+    {
+        QVariantMap m;
+        m["minimum"] = 0;
+        m["maximum"] = INT_MAX;
+        m["suffix"] = L10N::suffixBp();
         m["specialValueText"] = RepeatWorker::tr("Any");
         delegates[MAX_DIST_ATTR] = new SpinBoxDelegate(m);
-        m["minimum"] = 1;
+    } 
+    {
+        QVariantMap m;
+        m["minimum"] = 2;
+        m["maximum"] = INT_MAX;
+        m["suffix"] = L10N::suffixBp();
+        m["specialValueText"] = RepeatWorker::tr("Any");
         delegates[LEN_ATTR] = new SpinBoxDelegate(m);
     }
     {
