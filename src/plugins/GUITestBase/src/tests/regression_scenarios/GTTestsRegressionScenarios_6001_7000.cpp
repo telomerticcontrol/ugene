@@ -35,6 +35,7 @@
 #include <primitives/GTComboBox.h>
 #include <primitives/GTGroupBox.h>
 #include <primitives/GTLineEdit.h>
+#include "primitives/GTMainWindow.h"
 #include <primitives/GTMenu.h>
 #include <primitives/GTRadioButton.h>
 #include <primitives/GTSpinBox.h>
@@ -2162,10 +2163,33 @@ GUI_TEST_CLASS_DEFINITION(test_6397) {
 
     //4. Set "Max distance" parameter to 1
     GTUtilsWorkflowDesigner::setParameter(os, "Max distance", "1", GTUtilsWorkflowDesigner::spinValue, GTGlobals::UseKey);
+    GTUtilsWorkflowDesigner::click(os, GTUtilsWorkflowDesigner::getWorker(os, "Find Repeats"));
+    GTGlobals::sleep();
+    GTUtilsWorkflowDesigner::clickParameter(os, "Max distance");
 
-    //Expected state: it set successfully
+    //QTableView* table = qobject_cast<QTableView*>(GTWidget::findWidget(os,"table"));
+    QList<QWidget*> list;
+    foreach(QWidget *w, GTMainWindow::getMainWindowsAsWidget(os)) {
+        list.append(w);
+    }
+
+    QSpinBox *qsb = nullptr;
+    foreach (QWidget *w, list) {
+        foreach (QObject *o, w->findChildren<QObject*>()) {
+            qsb = qobject_cast<QSpinBox*>(o);
+            if (qsb != nullptr) {
+                break;
+            }
+        }
+        if (qsb != nullptr) {
+            break;
+        }
+    }
+
+    //Expected state: it set successfully, ensure that 1 is minimum value
     QString maxDistance = GTUtilsWorkflowDesigner::getParameter(os,  "Max distance", true);
-    CHECK_SET_ERR(maxDistance == "1 bp","Attribute value isn't 1 bp");
+    CHECK_SET_ERR(maxDistance == "1 bp", "Attribute value isn't 1 bp");
+    CHECK_SET_ERR(qsb->minimum() == 1, "Minimum value isn't 1");
 
     //6. Open human_t1.fa
     GTFileDialog::openFile(os, dataDir + "samples/FASTA/human_T1.fa");
