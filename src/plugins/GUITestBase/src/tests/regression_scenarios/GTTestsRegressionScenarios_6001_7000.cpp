@@ -2146,7 +2146,6 @@ GUI_TEST_CLASS_DEFINITION(test_6378) {
 }
 
 GUI_TEST_CLASS_DEFINITION(test_6397) {
-    /*
     //1. Open WD
     GTUtilsWorkflowDesigner::openWorkflowDesigner(os);
 
@@ -2167,7 +2166,7 @@ GUI_TEST_CLASS_DEFINITION(test_6397) {
     //Expected state: it set successfully
     QString maxDistance = GTUtilsWorkflowDesigner::getParameter(os,  "Max distance", true);
     CHECK_SET_ERR(maxDistance == "1 bp","Attribute value isn't 1 bp");
-*/
+
     //6. Open human_t1.fa
     GTFileDialog::openFile(os, dataDir + "samples/FASTA/human_T1.fa");
     GTUtilsTaskTreeView::waitTaskFinished(os);
